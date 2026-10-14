@@ -368,30 +368,39 @@
       loading.classList.remove('hidden');
       genBtn.disabled = true;
 
-      const prompt = `Act as an expert in cognitive reading science and secondary literacy. 
-Analyze the following vocabulary word(s): ${rawWords}.
-Break each word down for adolescent secondary students into the exact JSON schema below.
-Ensure:
-1. Syllable division follows standard phonics rules (Closed, Open, VCe, Vowel Team, R-Controlled, Diphthong, or Consonant-le).
-2. Exactly one syllable has primaryStress: true.
-3. Morphemes represent legitimate etymological roots, prefixes, or suffixes with mature, concise definitions.
-4. The retrievalPrompt is a rigorous 30-second peer discussion prompt connecting the word's morphology to its disciplinary concept.
+      const prompt = `Act as an expert in cognitive reading science, linguistic phonology, and LETRS-aligned secondary literacy.
+Analyze the target vocabulary word(s): ${rawWords}.
+Break each word down into the exact JSON schema below.
 
-Output ONLY valid JSON matching this structure:
+CRITICAL PHONOLOGICAL & STRESS RULES:
+1. PRIMARY STRESS ACCURACY:
+   - Determine the correct General American pronunciation and IPA before splitting syllables.
+   - Mark EXACTLY ONE syllable with "primaryStress": true (the syllable with the primary stress symbol ˈ in the IPA).
+   - Watch out for suffixes that govern stress:
+     * Words ending in "-ic" or "-ics" (e.g., morphophonemic, anaerobic, parasitic, photosynthesis) ALWAYS place primary stress on the PENULTIMATE syllable (the syllable directly preceding "-ic"), NEVER on "-ic" itself (e.g., mor-pho-pho-NE-mic).
+     * Words ending in "-tion", "-sion", or "-ity" also stress the syllable directly preceding the suffix.
+2. SYLLABLE DIVISION & TYPES:
+   - Syllables must be strictly categorized into standard orthographic syllable types: "Closed", "Open", "VCe", "Vowel Team", "R-Controlled", "Diphthong", or "Consonant-le".
+3. MORPHOLOGY:
+   - Break into legitimate prefixes, combining forms, roots, and suffixes with mature, discipline-specific definitions.
+4. RETRIEVAL PROMPT:
+   - Create a rigorous 30-second peer discussion retrieval prompt connecting the word's morphemic parts directly to its conceptual meaning in secondary academic contexts.
+
+Output ONLY valid JSON matching this schema:
 [
   {
     "targetWord": "word",
-    "discipline": "Discipline / Topic",
-    "etymology": "Language of origin and base roots",
+    "discipline": "Discipline / Domain",
+    "etymology": "Origin & roots breakdown",
     "phoneticIpa": "/IPA/",
     "syllables": [
-      {"text": "chunk", "type": "Closed/Open/etc", "primaryStress": true/false}
+      {"text": "chunk", "type": "Closed/Open/VCe/Vowel Team/R-Controlled/Diphthong/Consonant-le", "primaryStress": true}
     ],
-    "articulatoryCaution": "Short instruction on how to pronounce tricky sounds or accents",
+    "articulatoryCaution": "Mature phonological note regarding articulatory gestures, consonant clusters, or vowel shifts",
     "morphemes": [
-      {"chunk": "part", "type": "Prefix/Root/Suffix", "meaning": "definition"}
+      {"chunk": "part", "type": "Prefix/Root/Suffix/Connector", "meaning": "definition"}
     ],
-    "retrievalPrompt": "30-second partner sentence prompt"
+    "retrievalPrompt": "30-sec peer conversation prompt"
   }
 ]`;
 
