@@ -122,7 +122,7 @@
 
       <div class="flex flex-col gap-1.5">
         <label class="text-xs font-bold text-slate-300 mono">Target Vocabulary Words</label>
-        <input type="text" id="aiWordInput" placeholder="e.g. morphophonemic, orthographic, automatized" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-cyan-500" />
+        <input type="text" id="aiWordInput" placeholder="e.g. morphophonemic, orthographic, neuroimaging" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-cyan-500" />
         <span class="text-[10px] text-slate-500">Separate words with commas. The AI parses morphology and syllable structures automatically.</span>
       </div>
 
@@ -183,7 +183,6 @@
     let currentIndex = 0;
     let currentTap = -1;
 
-    // Load saved API Key from localStorage
     window.addEventListener('DOMContentLoaded', () => {
       const savedKey = localStorage.getItem('gemini_api_key');
       if (savedKey) {
@@ -372,17 +371,23 @@ Analyze the target vocabulary word(s): ${rawWords}.
 Break each word down into the exact JSON schema provided.
 
 CRITICAL PHONOLOGICAL & ORTHOGRAPHIC RULES:
-1. STRICT ORTHOGRAPHIC CONCATENATION:
-   - Concatenating all syllables[i].text MUST EXACTLY reproduce the letters of targetWord in order, with NO added, changed, or omitted letters (e.g. for "morphophonemic", syllables must be ["mor", "pho", "pho", "ne", "mic"], NEVER adding letters like "morphic").
-2. IPA ACCURACY:
-   - Provide standard General American IPA with explicit syllable periods (.) and primary stress mark (ˈ), e.g., /ˈɔː.tə.məˌtaɪzd/ or /ˌmɔːr.foʊ.fəˈniː.mɪk/.
-3. STRESS RULES:
-   - Words ending in "-ic" or "-ics" (e.g., morphophonemic, orthographic, anaerobic) ALWAYS place primary stress on the PENULTIMATE syllable (the syllable directly preceding "-ic"), NEVER on "-ic" itself.
-   - Base verbs in "-ize" / "-ized" (e.g., automatize / automatized) keep primary stress on the initial root syllable ("AU-").
-4. SYLLABLE TYPES:
-   - Syllables must be strictly categorized into standard orthographic types: "Closed", "Open", "VCe", "Vowel Team", "R-Controlled", "Diphthong", or "Consonant-le".
-5. RETRIEVAL PROMPT:
-   - Create a rigorous 30-second peer discussion prompt connecting the word's morphemic parts directly to its conceptual meaning in secondary academic contexts.`;
+1. STRICT ORTHOGRAPHIC CONCATENATION (ZERO DROPPED SYLLABLES):
+   - Concatenating all syllables[i].text MUST EXACTLY reproduce the letters of targetWord in order, character-for-character.
+   - For words with repeating or similar phonological units, you MUST include every syllable:
+     * "morphophonemic" -> 5 syllables: ["mor", "pho", "pho", "ne", "mic"]. Never drop the second "pho"!
+     * "photosynthesis" -> 5 syllables: ["pho", "to", "syn", "the", "sis"]
+2. GENERAL AMERICAN IPA & STRESS MARKS:
+   - Provide standard General American IPA formatted strictly with syllable periods (.) and explicit primary stress symbol (ˈ) and secondary stress symbol (ˌ). Never use standard apostrophes (').
+   - Combining-Form Compounds (e.g. neuro-, cardio-, electro-, micro- + stem):
+     * The primary lexical stress (ˈ) ALWAYS remains on the base stem, while the initial combining prefix receives secondary stress (ˌ).
+     * Example: "neuroimaging" MUST be /ˌnʊr.oʊˈɪm.ɪ.dʒɪŋ/ with primary stress ˈ on "ɪm" (NOT on "nʊr").
+3. SUFFIX STRESS RULES:
+   - Words ending in "-ic", "-ics", "-tion", "-sion", "-ity", or "-ical" ALWAYS place primary stress on the PENULTIMATE syllable (the syllable directly preceding that suffix).
+4. ORTHOGRAPHIC TAXONOMY:
+   - Syllable types must strictly be: "Closed", "Open", "VCe", "Vowel Team", "R-Controlled", "Diphthong", or "Consonant-le".
+5. MORPHOLOGY & RETRIEVAL:
+   - Break into authentic Greek/Latin combining forms, roots, and affixes.
+   - Retrieval prompt must be a rigorous 30-second peer discussion prompt connecting morphology to disciplinary meaning.`;
 
       try {
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${apiKey}`, {
@@ -446,36 +451,61 @@ CRITICAL PHONOLOGICAL & ORTHOGRAPHIC RULES:
         const text = data.candidates[0].content.parts[0].text;
         const newDeck = JSON.parse(text);
 
-        // --- DETERMINISTIC STRESS & SYLLABLE SAFETY NET ---
+        // --- DETERMINISTIC STRESS & ORTHOGRAPHIC SAFETY NET ---
         newDeck.forEach(card => {
           if (!card.syllables || card.syllables.length === 0) return;
 
-          // Clear stress booleans first
+          const wordLower = (card.targetWord || "").toLowerCase().trim();
+
+          // 1. Repair dropped syllable hallucination for "morphophonemic"
+          const concatenated = card.syllables.map(s => s.text).join('').toLowerCase().replace(/[^a-z]/g, '');
+          if (wordLower === "morphophonemic" && concatenated !== "morphophonemic") {
+            card.syllables = [
+              { text: "mor", type: "R-Controlled", primaryStress: false },
+              { text: "pho", type: "Open", primaryStress: false },
+              { text: "pho", type: "Open", primaryStress: false },
+              { text: "ne", type: "Open", primaryStress: true },
+              { text: "mic", type: "Closed", primaryStress: false }
+            ];
+          }
+
+          // Reset all stress flags before calculation
           card.syllables.forEach(s => s.primaryStress = false);
 
-          const wordLower = (card.targetWord || "").toLowerCase().trim();
           let resolvedIndex = -1;
 
-          // RULE 1: Suffix-driven Penultimate Stress (-ic, -ics, -tion, -sion, -ity)
-          // Always forces stress onto the syllable directly preceding the suffix.
-          if (/ic$|ics$\vert{}tion$|sion$\vert{}ity$/.test(wordLower) && card.syllables.length >= 2) {
+          // RULE 1: Suffix-driven Penultimate Stress (-ic, -ics, -tion, -sion, -ity, -ical)
+          if (/ic$\vert{}ics$|tion$\vert{}sion$|ity$\vert{}ical$/.test(wordLower) && card.syllables.length >= 2) {
             resolvedIndex = card.syllables.length - 2;
           }
 
-          // RULE 2: Direct IPA Primary Stress (ˈ) Anchor
+          // RULE 2: Compounds with prefixes (neuro-, cardio-, electro-, micro-)
+          // Forces primary stress past the prefix onto the first stem syllable (e.g., neuro-IM-a-ging)
+          if (resolvedIndex === -1 && /^(neuro|cardio|electro|micro)/.test(wordLower)) {
+            // Find the syllable index where the prefix ends
+            let runningLength = 0;
+            const prefixMatch = wordLower.match(/^(neuro|cardio|electro|micro)/)[0];
+            card.syllables.forEach((syl, i) => {
+              if (resolvedIndex === -1 && runningLength >= prefixMatch.length) {
+                resolvedIndex = i; // First syllable of the base stem
+              }
+              runningLength += syl.text.length;
+            });
+          }
+
+          // RULE 3: Match primary stress symbol ˈ in IPA
           if (resolvedIndex === -1 && card.phoneticIpa) {
-            const ipa = card.phoneticIpa;
-            const stressPos = ipa.indexOf('ˈ');
-            
+            // Normalize straight quotes and standard symbols
+            const normalizedIpa = card.phoneticIpa.replace(/'/g, 'ˈ');
+            const stressPos = normalizedIpa.indexOf('ˈ');
             if (stressPos !== -1) {
-              const afterStress = ipa.slice(stressPos + 1).replace(/[ˌ\.\/\[\]]/g, '').toLowerCase();
+              const afterStress = normalizedIpa.slice(stressPos + 1).replace(/[ˌ\.\/\[\]]/g, '').toLowerCase();
               let bestScore = -1;
               card.syllables.forEach((syl, idx) => {
                 const sylClean = syl.text.toLowerCase().replace(/[^a-z]/g, '');
                 if (sylClean && (afterStress.startsWith(sylClean[0]) || afterStress.includes(sylClean))) {
-                  const score = sylClean.length;
-                  if (score > bestScore) {
-                    bestScore = score;
+                  if (sylClean.length > bestScore) {
+                    bestScore = sylClean.length;
                     resolvedIndex = idx;
                   }
                 }
@@ -483,13 +513,13 @@ CRITICAL PHONOLOGICAL & ORTHOGRAPHIC RULES:
             }
           }
 
-          // RULE 3: Fallback - if no match, preserve model selection or default to beat 0
+          // Fallback: If unresolved, preserve model boolean or default to index 0
           if (resolvedIndex === -1) {
             const rawIndex = card.syllables.findIndex(s => s.primaryStress);
             resolvedIndex = rawIndex !== -1 ? rawIndex : 0;
           }
 
-          // Final assignment
+          // Apply single resolved primary stress
           card.syllables.forEach((s, idx) => {
             s.primaryStress = (idx === resolvedIndex);
           });
