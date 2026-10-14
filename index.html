@@ -157,24 +157,105 @@
   <script>
     const DEFAULT_DECK = [
       {
-        targetWord: "anaerobic",
-        discipline: "Biology / Cellular Energetics",
-        etymology: "Greek (an- [without] + aer [air/oxygen] + bios [life])",
-        phoneticIpa: "/ˌæn.ɛˈroʊ.bɪk/",
+        targetWord: "morphophonemic",
+        discipline: "Linguistics / LETRS",
+        etymology: "Greek morphē (form) + phōnē (sound) + -emic",
+        phoneticIpa: "/ˌmɔːr.foʊ.fəˈniː.mɪk/",
         syllables: [
-          { text: "an", type: "Closed", primaryStress: false },
-          { text: "aer", type: "R-Controlled", primaryStress: true },
-          { text: "o", type: "Open", primaryStress: false },
-          { text: "bic", type: "Closed", primaryStress: false }
+          { text: "mor", type: "R-Controlled", primaryStress: false },
+          { text: "pho", type: "Open", primaryStress: false },
+          { text: "pho", type: "Open", primaryStress: false },
+          { text: "ne", type: "Open", primaryStress: true },
+          { text: "mic", type: "Closed", primaryStress: false }
         ],
-        articulatoryCaution: "Accent the second syllable: an-AER-o-bic. Blend the vowel digraph 'ae' cleanly with the /r/ coda without inserting an extra syllable beat.",
+        articulatoryCaution: "Accent the fourth syllable: mor-pho-pho-NE-mic. Blend the two distinct /f/ sounds without eliding the unstressed medial /fə/.",
         morphemes: [
-          { chunk: "an-", type: "Prefix", meaning: "not / without" },
-          { chunk: "aer", type: "Root", meaning: "air / oxygen" },
-          { chunk: "-o-", type: "Connector", meaning: "Greek combining vowel" },
-          { chunk: "-bic", type: "Suffix", meaning: "living / life (bios)" }
+          { chunk: "morph-", type: "Combining Form", meaning: "form or structure" },
+          { chunk: "-o-", type: "Connector", meaning: "combining vowel" },
+          { chunk: "phon", type: "Root", meaning: "sound or voice" },
+          { chunk: "-emic", type: "Suffix", meaning: "pertaining to linguistic units" }
         ],
-        retrievalPrompt: "Turn to your partner: In 30 seconds, explain why anaerobic respiration is an emergency backup system for human muscle cells using the root 'an-'."
+        retrievalPrompt: "Discuss with a peer how understanding morphophonemic spelling patterns explains why English spelling preserves root structures despite vowel shifts (e.g., 'heal' and 'health')."
+      },
+      {
+        targetWord: "orthographic",
+        discipline: "Cognitive Science / Reading",
+        etymology: "Greek orthos (straight, correct) + graphein (to write) + -ic",
+        phoneticIpa: "/ˌɔːr.θəˈɡræf.ɪk/",
+        syllables: [
+          { text: "or", type: "R-Controlled", primaryStress: false },
+          { text: "tho", type: "Open", primaryStress: false },
+          { text: "graph", type: "Closed", primaryStress: true },
+          { text: "ic", type: "Closed", primaryStress: false }
+        ],
+        articulatoryCaution: "Accent the penultimate syllable: or-tho-GRAPH-ic. Articulate the unvoiced interdental fricative /θ/ cleanly before transitioning to /ɡ/.",
+        morphemes: [
+          { chunk: "ortho-", type: "Combining Form", meaning: "straight, correct, standard" },
+          { chunk: "graph", type: "Root", meaning: "write, record, or represent" },
+          { chunk: "-ic", type: "Suffix", meaning: "pertaining to or characterized by" }
+        ],
+        retrievalPrompt: "Explain to your partner why orthographic mapping is essential for establishing rapid, effortless sight vocabulary in adolescent readers."
+      },
+      {
+        targetWord: "automatized",
+        discipline: "Cognitive Psychology / Skill Acquisition",
+        etymology: "Greek automatos (self-acting) + -ize (verbal suffix) + -ed (past participle)",
+        phoneticIpa: "/ˈɔː.tə.məˌtaɪzd/",
+        syllables: [
+          { text: "au", type: "Vowel Team", primaryStress: true },
+          { text: "to", type: "Open", primaryStress: false },
+          { text: "ma", type: "Open", primaryStress: false },
+          { text: "tized", type: "VCe", primaryStress: false }
+        ],
+        articulatoryCaution: "Accent the initial syllable: AU-to-ma-tized. Unstressed vowels reduce to schwa /ə/ before the secondary accent on 'tized'.",
+        morphemes: [
+          { chunk: "auto-", type: "Prefix", meaning: "self or same" },
+          { chunk: "mat", type: "Root", meaning: "acting independently" },
+          { chunk: "-ize", type: "Suffix", meaning: "to make or render" },
+          { chunk: "-ed", type: "Inflection", meaning: "past participle state" }
+        ],
+        retrievalPrompt: "Explain to your partner how a reading skill becomes 'automatized' in terms of cognitive load theory and freeing up working memory."
+      },
+      {
+        targetWord: "phonological",
+        discipline: "Linguistics / LETRS",
+        etymology: "Greek phōnē (sound) + logos (study) + -ical",
+        phoneticIpa: "/ˌfoʊ.nəˈlɑː.dʒɪ.kəl/",
+        syllables: [
+          { text: "pho", type: "Open", primaryStress: false },
+          { text: "no", type: "Open", primaryStress: false },
+          { text: "log", type: "Closed", primaryStress: true },
+          { text: "i", type: "Open", primaryStress: false },
+          { text: "cal", type: "Closed", primaryStress: false }
+        ],
+        articulatoryCaution: "Accent the antepenultimate syllable: pho-no-LOG-i-cal. The vowel in 'log' carries full open articulation /ɑː/, reducing the preceding vowel to schwa /ə/.",
+        morphemes: [
+          { chunk: "phon", type: "Root", meaning: "sound or voice" },
+          { chunk: "-o-", type: "Connector", meaning: "combining vowel" },
+          { chunk: "log", type: "Root", meaning: "word, reason, or study" },
+          { chunk: "-ical", type: "Suffix", meaning: "pertaining to" }
+        ],
+        retrievalPrompt: "Collaborate with a partner to explain why phonological processing remains foundational for polysyllabic decoding even in high school courses."
+      },
+      {
+        targetWord: "metalinguistic",
+        discipline: "Psycholinguistics / Literacy",
+        etymology: "Greek meta (beyond, higher) + Latin lingua (language) + -istic",
+        phoneticIpa: "/ˌmɛt.ə.lɪŋˈɡwɪs.tɪk/",
+        syllables: [
+          { text: "met", type: "Closed", primaryStress: false },
+          { text: "a", type: "Open", primaryStress: false },
+          { text: "lin", type: "Closed", primaryStress: false },
+          { text: "guis", type: "Closed", primaryStress: true },
+          { text: "tic", type: "Closed", primaryStress: false }
+        ],
+        articulatoryCaution: "Accent the fourth syllable: met-a-lin-GUIS-tic. Articulate the velar glide blend /ɡw/ cleanly without dropping the nasal coda /ŋ/.",
+        morphemes: [
+          { chunk: "meta-", type: "Prefix", meaning: "beyond or higher level" },
+          { chunk: "lingu", type: "Root", meaning: "language or tongue" },
+          { chunk: "-istic", type: "Suffix", meaning: "pertaining to the practice or science of" }
+        ],
+        retrievalPrompt: "Evaluate how metalinguistic awareness allows adolescent readers to treat language as an object of analysis during complex disciplinary text reading."
       }
     ];
 
