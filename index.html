@@ -36,7 +36,7 @@
       <h1 class="text-sm font-bold tracking-widest uppercase text-slate-400 mono">LETRS Phono-Morph Blast // secondary engine</h1>
     </div>
     <div class="flex items-center gap-3">
-      <span id="disciplineBadge" class="text-xs px-3 py-1 rounded-full font-semibold tracking-wide bg-slate-800 text-cyan-300 border border-slate-700">Biology</span>
+      <span id="disciplineBadge" class="text-xs px-3 py-1 rounded-full font-semibold tracking-wide bg-slate-800 text-cyan-300 border border-slate-700">Linguistics / LETRS</span>
       <button onclick="toggleAiDrawer()" class="text-xs px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 font-bold text-white mono transition flex items-center gap-1.5 shadow-lg shadow-cyan-900/30">
         <span>⚡ AI Deck Generator</span>
       </button>
@@ -51,10 +51,10 @@
     
     <!-- Target Word & Pronunciation -->
     <div class="text-center">
-      <div class="text-xs font-bold text-slate-500 uppercase tracking-widest mono mb-1" id="etymologyLabel">Greek Combining Form</div>
+      <div class="text-xs font-bold text-slate-500 uppercase tracking-widest mono mb-1" id="etymologyLabel">Greek morphē (form) + phōnē (sound) + -emic</div>
       <div class="text-3xl md:text-5xl font-extrabold text-white tracking-tight flex items-center justify-center gap-4">
-        <span id="targetWord">anaerobic</span>
-        <span id="phoneticIpa" class="text-lg md:text-xl font-normal text-slate-400 mono">/ˌæn.ɛˈroʊ.bɪk/</span>
+        <span id="targetWord">morphophonemic</span>
+        <span id="phoneticIpa" class="text-lg md:text-xl font-normal text-slate-400 mono">/ˌmɔːr.foʊ.fəˈniː.mɪk/</span>
       </div>
     </div>
 
@@ -62,7 +62,7 @@
     <div class="w-full bg-slate-900/80 p-6 md:p-8 rounded-2xl border border-slate-800 shadow-2xl backdrop-blur">
       <div class="flex justify-between items-center mb-4 text-xs text-slate-400 mono">
         <span>PHONO-ORTHOGRAPHIC MAPPING [SPACEBAR OR CLICK TO ADVANCE]</span>
-        <span id="tapCounter" class="text-cyan-400 font-bold">BEAT 0 / 4</span>
+        <span id="tapCounter" class="text-cyan-400 font-bold">BEAT 0 / 5</span>
       </div>
       
       <div id="syllableContainer" class="flex flex-wrap items-center justify-center gap-3 md:gap-4 my-2">
@@ -70,7 +70,7 @@
       </div>
 
       <div id="articulatoryNotes" class="mt-6 text-center text-xs md:text-sm text-amber-400/90 font-medium tracking-wide">
-        Accent the second syllable: an-AER-o-bic. Blend the vowel digraph 'ae' cleanly with the /r/ coda without inserting an extra syllable beat.
+        Accent the fourth syllable: mor-pho-pho-NE-mic. Blend the two distinct /f/ sounds without eliding the unstressed medial /fə/.
       </div>
     </div>
 
@@ -85,7 +85,7 @@
         <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 mono">30-Sec Partner Retrieval</span>
       </div>
       <p id="retrievalPrompt" class="text-sm md:text-base text-slate-200 font-medium">
-        "Turn to your partner. Explain why aerobic respiration yields roughly 18x more ATP than anaerobic glycolysis using the root meaning of '-aer-'."
+        "Discuss with a peer how understanding morphophonemic spelling patterns explains why English spelling preserves root structures despite vowel shifts (e.g., 'heal' and 'health')."
       </p>
     </div>
 
@@ -97,7 +97,7 @@
       <kbd class="px-2 py-1 bg-slate-800 rounded border border-slate-700 text-slate-300">Space</kbd> <span>Tap Beat</span>
       <kbd class="px-2 py-1 bg-slate-800 rounded border border-slate-700 text-slate-300 ml-3">&larr; / &rarr;</kbd> <span>Prev/Next Word</span>
     </div>
-    <div id="wordProgress">Word 1 of 4</div>
+    <div id="wordProgress">Word 1 of 5</div>
   </footer>
 
   <!-- AI Generator Drawer / Modal -->
@@ -122,8 +122,8 @@
 
       <div class="flex flex-col gap-1.5">
         <label class="text-xs font-bold text-slate-300 mono">Target Vocabulary Words</label>
-        <input type="text" id="aiWordInput" placeholder="e.g. etymological, automatized, neuroimaging" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-cyan-500" />
-        <span class="text-[10px] text-slate-500">Separate words with commas. The AI parses morphology and syllable structures automatically.</span>
+        <input type="text" id="aiWordInput" placeholder="e.g. bibliography, geography, archaeology" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-cyan-500" />
+        <span class="text-[10px] text-slate-500">Separate words with commas. Built-in science reference checks verified items first.</span>
       </div>
 
       <div id="aiLoading" class="hidden flex items-center justify-center gap-3 p-3 bg-slate-950/60 rounded-lg border border-cyan-900/40 text-cyan-400 text-xs mono">
@@ -265,65 +265,50 @@
 
     // --- DISCIPLINARY REFERENCE LEXICON (GROUND TRUTH CACHE) ---
     const VERIFIED_LEXICON = {
-      "morphophonemic": {
-        targetWord: "morphophonemic",
-        discipline: "Linguistics / LETRS",
-        etymology: "Greek morphē (form) + phōnē (sound) + -emic",
-        phoneticIpa: "/ˌmɔːr.foʊ.fəˈniː.mɪk/",
+      "morphophonemic": DEFAULT_DECK[0],
+      "orthographic": DEFAULT_DECK[1],
+      "automatized": DEFAULT_DECK[2],
+      "phonological": DEFAULT_DECK[3],
+      "metalinguistic": DEFAULT_DECK[4],
+      "bibliography": {
+        targetWord: "bibliography",
+        discipline: "Information Literacy / Research",
+        etymology: "Greek biblion (book) + graphein (to write) + -y",
+        phoneticIpa: "/ˌbɪb.liˈɑː.ɡrə.fi/",
         syllables: [
-          { text: "mor", type: "R-Controlled", primaryStress: false },
-          { text: "pho", type: "Open", primaryStress: false },
-          { text: "pho", type: "Open", primaryStress: false },
-          { text: "ne", type: "Open", primaryStress: true },
-          { text: "mic", type: "Closed", primaryStress: false }
+          { text: "bib", type: "Closed", primaryStress: false },
+          { text: "li", type: "Open", primaryStress: false },
+          { text: "og", type: "Closed", primaryStress: true },
+          { text: "ra", type: "Open", primaryStress: false },
+          { text: "phy", type: "Open", primaryStress: false }
         ],
-        articulatoryCaution: "Accent the fourth syllable: mor-pho-pho-NE-mic. Blend the two distinct /f/ sounds without eliding the unstressed medial /fə/.",
+        articulatoryCaution: "Accent the third syllable: bib-li-OG-ra-phy. The vowel in 'og' carries primary open accent /ɑː/, causing 'ra' to reduce to schwa /rə/.",
         morphemes: [
-          { chunk: "morph-", type: "Combining Form", meaning: "form or structure" },
-          { chunk: "-o-", type: "Connector", meaning: "combining vowel" },
-          { chunk: "phon", type: "Root", meaning: "sound or voice" },
-          { chunk: "-emic", type: "Suffix", meaning: "pertaining to linguistic units" }
+          { chunk: "biblio-", type: "Combining Form", meaning: "book or books" },
+          { chunk: "graph", type: "Root", meaning: "write, record, or list" },
+          { chunk: "-y", type: "Suffix", meaning: "process, condition, or result of" }
         ],
-        retrievalPrompt: "Discuss with a peer how understanding morphophonemic spelling patterns explains why English spelling preserves root structures despite vowel shifts (e.g., 'heal' and 'health')."
+        retrievalPrompt: "Turn to your partner: Explain how the combined roots 'biblio-' (book) and 'graph' (write/record) help explain why a bibliography is distinct from a simple index or glossary."
       },
-      "orthographic": {
-        targetWord: "orthographic",
-        discipline: "Linguistics / Cognitive Science",
-        etymology: "Greek orthos (straight, correct) + graphein (to write) + -ic",
-        phoneticIpa: "/ˌɔːr.θəˈɡræf.ɪk/",
+      "anaerobic": {
+        targetWord: "anaerobic",
+        discipline: "Biology / Cellular Energetics",
+        etymology: "Greek (an- [without] + aer [air/oxygen] + bios [life])",
+        phoneticIpa: "/ˌæn.ɛˈroʊ.bɪk/",
         syllables: [
-          { text: "or", type: "R-Controlled", primaryStress: false },
-          { text: "tho", type: "Open", primaryStress: false },
-          { text: "graph", type: "Closed", primaryStress: true },
-          { text: "ic", type: "Closed", primaryStress: false }
+          { text: "an", type: "Closed", primaryStress: false },
+          { text: "aer", type: "R-Controlled", primaryStress: true },
+          { text: "o", type: "Open", primaryStress: false },
+          { text: "bic", type: "Closed", primaryStress: false }
         ],
-        articulatoryCaution: "Accent the penultimate syllable: or-tho-GRAPH-ic. Articulate the unvoiced interdental fricative /θ/ cleanly before transitioning to /ɡ/.",
+        articulatoryCaution: "Accent the second syllable: an-AER-o-bic. Blend the vowel digraph 'ae' cleanly with the /r/ coda without inserting an extra syllable beat.",
         morphemes: [
-          { chunk: "ortho-", type: "Combining Form", meaning: "straight, correct, standard" },
-          { chunk: "graph", type: "Root", meaning: "write, record, or represent" },
-          { chunk: "-ic", type: "Suffix", meaning: "pertaining to or characterized by" }
+          { chunk: "an-", type: "Prefix", meaning: "not / without" },
+          { chunk: "aer", type: "Root", meaning: "air / oxygen" },
+          { chunk: "-o-", type: "Connector", meaning: "Greek combining vowel" },
+          { chunk: "-bic", type: "Suffix", meaning: "living / life (bios)" }
         ],
-        retrievalPrompt: "Explain to your partner why orthographic mapping is essential for establishing rapid, effortless sight vocabulary in adolescent readers."
-      },
-      "metalinguistic": {
-        targetWord: "metalinguistic",
-        discipline: "Psycholinguistics / LETRS",
-        etymology: "Greek meta (beyond, higher) + Latin lingua (language) + -istic",
-        phoneticIpa: "/ˌmɛt.ə.lɪŋˈɡwɪs.tɪk/",
-        syllables: [
-          { text: "met", type: "Closed", primaryStress: false },
-          { text: "a", type: "Open", primaryStress: false },
-          { text: "lin", type: "Closed", primaryStress: false },
-          { text: "guis", type: "Closed", primaryStress: true },
-          { text: "tic", type: "Closed", primaryStress: false }
-        ],
-        articulatoryCaution: "Accent the fourth syllable: met-a-lin-GUIS-tic. Articulate the velar glide blend /ɡw/ cleanly without dropping the nasal coda /ŋ/.",
-        morphemes: [
-          { chunk: "meta-", type: "Prefix", meaning: "beyond or higher level" },
-          { chunk: "lingu", type: "Root", meaning: "language or tongue" },
-          { chunk: "-istic", type: "Suffix", meaning: "pertaining to the practice or science of" }
-        ],
-        retrievalPrompt: "Evaluate how metalinguistic awareness allows adolescent readers to treat language as an object of analysis during complex disciplinary text reading."
+        retrievalPrompt: "Turn to your partner: In 30 seconds, explain why anaerobic respiration is an emergency backup system for human muscle cells using the root 'an-'."
       },
       "etymological": {
         targetWord: "etymological",
@@ -346,26 +331,6 @@
           { chunk: "-ical", type: "Suffix", meaning: "pertaining to" }
         ],
         retrievalPrompt: "Discuss how tracking the etymological roots of technical scientific terms can assist students in decoding complex academic vocabulary across content areas."
-      },
-      "automatized": {
-        targetWord: "automatized",
-        discipline: "Cognitive Psychology / Skill Acquisition",
-        etymology: "Greek automatos (self-acting) + -ize (verbal suffix) + -ed (past participle)",
-        phoneticIpa: "/ˈɔː.tə.məˌtaɪzd/",
-        syllables: [
-          { text: "au", type: "Vowel Team", primaryStress: true },
-          { text: "to", type: "Open", primaryStress: false },
-          { text: "ma", type: "Open", primaryStress: false },
-          { text: "tized", type: "VCe", primaryStress: false }
-        ],
-        articulatoryCaution: "Accent the initial syllable: AU-to-ma-tized. Unstressed vowels reduce to schwa /ə/ before the secondary accent on 'tized'.",
-        morphemes: [
-          { chunk: "auto-", type: "Prefix", meaning: "self or same" },
-          { chunk: "mat", type: "Root", meaning: "acting independently" },
-          { chunk: "-ize", type: "Suffix", meaning: "to make or render" },
-          { chunk: "-ed", type: "Inflection", meaning: "past participle state" }
-        ],
-        retrievalPrompt: "Explain to your partner how a reading skill becomes 'automatized' in terms of cognitive load theory and freeing up working memory."
       },
       "neuroimaging": {
         targetWord: "neuroimaging",
@@ -586,7 +551,7 @@
         }
       });
 
-      // If all words matched the ground truth cache, load instantly
+      // If all words matched the ground truth cache, render immediately
       if (wordsToQuery.length === 0) {
         currentDeck = generatedCards;
         currentIndex = 0;
@@ -606,11 +571,16 @@ CRITICAL PHONOLOGICAL & ORTHOGRAPHIC CONSTRAINTS:
    - Concatenating all syllables[i].text MUST match targetWord character-for-character.
 2. GENERAL AMERICAN IPA & STRESS MARKS:
    - Provide standard General American IPA formatted strictly with periods (.) and explicit primary stress symbol (ˈ).
-   - In combining-form compounds (e.g. neuro-, cardio-, electro-, micro- + stem), primary stress (ˈ) stays on the base stem ("im"), with secondary stress (ˌ) on the combining form.
+   - In combining-form compounds (e.g. neuro-, cardio-, electro-, micro- + stem), primary stress (ˈ) stays on the base stem, with secondary stress (ˌ) on the combining form.
 3. SUFFIX STRESS RULES:
-   - Suffix "-ical": Stress is ANTEPENULTIMATE (3rd from end: e.g., et-y-mo-LOG-i-cal, pho-no-LOG-i-cal).
-   - Suffixes "-ic", "-ics", "-istic", "-tion", "-sion", "-ity": Stress is PENULTIMATE (2nd from end).
-   - Verbs ending in "-ize" / "-ized": Stress remains on the initial base root (e.g. AU-to-ma-tized).`;
+   - Suffixes "-ical", "-graphy", "-logy", "-metry", "-nomy": Stress is ANTEPENULTIMATE (3rd syllable from end: e.g., bib-li-OG-ra-phy, et-y-mo-LOG-i-cal).
+   - Suffixes "-ic", "-ics", "-istic", "-tion", "-sion", "-ity": Stress is PENULTIMATE (2nd syllable from end: e.g. mor-pho-pho-NE-mic).
+   - Verbs ending in "-ize" / "-ized": Stress remains on the initial base root (e.g. AU-to-ma-tized).
+4. SYLLABLE TYPES:
+   - Must be: "Closed", "Open", "VCe", "Vowel Team", "R-Controlled", "Diphthong", or "Consonant-le".
+5. DISCIPLINARY RETRIEVAL PROMPT (NO FLASHCARD QUESTIONS):
+   - NEVER ask trivial recall questions like "What is the word for...".
+   - Formulate a 30-second structured PEER DISCUSSION prompt that instructs students to turn to a partner and apply how the word's morphemes connect to conceptual understanding in academic contexts.`;
 
       try {
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${apiKey}`, {
@@ -679,12 +649,14 @@ CRITICAL PHONOLOGICAL & ORTHOGRAPHIC CONSTRAINTS:
           const wLower = (card.targetWord || "").toLowerCase().trim();
           let targetIdx = -1;
 
-          // RULE 1: Antepenultimate Stress for -ical (3rd from end: et-y-mo-LOG-i-cal)
-          if (/ical$/.test(wLower) && card.syllables.length >= 3) {
+          // RULE 1: Antepenultimate Stress (3rd from end: length - 3)
+          // Covers: -ical (etymological), -graphy (bibliography), -logy (biology), -metry, -nomy
+          if (/(ical|graphy|logy|metry|nomy)$/.test(wLower) && card.syllables.length >= 3) {
             targetIdx = card.syllables.length - 3;
           }
 
-          // RULE 2: Penultimate Stress for -ic, -ics, -istic, -tion, -sion, -ity (2nd from end)
+          // RULE 2: Penultimate Stress (2nd from end: length - 2)
+          // Covers: -ic, -ics, -istic, -tion, -sion, -ity
           else if (/(ic|ics|istic|tion|sion|ity)$/.test(wLower) && card.syllables.length >= 2) {
             targetIdx = card.syllables.length - 2;
           }
@@ -700,13 +672,13 @@ CRITICAL PHONOLOGICAL & ORTHOGRAPHIC CONSTRAINTS:
             const pfx = wLower.match(/^(neuro|cardio|electro|micro)/)[0];
             card.syllables.forEach((syl, i) => {
               if (targetIdx === -1 && runningLen >= pfx.length) {
-                targetIdx = i; // First syllable of the base stem
+                targetIdx = i;
               }
               runningLen += syl.text.length;
             });
           }
 
-          // RULE 5: Robust IPA Anchor Search (handles ˈ and typewriter ')
+          // RULE 5: Direct IPA Anchor Matching (handles both ˈ and ')
           if (targetIdx === -1 && card.phoneticIpa) {
             const raw = card.phoneticIpa;
             const markerPos = raw.search(/[ˈ']/);
@@ -725,7 +697,6 @@ CRITICAL PHONOLOGICAL & ORTHOGRAPHIC CONSTRAINTS:
             }
           }
 
-          // Default fallback
           if (targetIdx === -1) targetIdx = 0;
           card.syllables.forEach((s, i) => s.primaryStress = (i === targetIdx));
           generatedCards.push(card);
