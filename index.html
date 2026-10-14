@@ -122,7 +122,7 @@
 
       <div class="flex flex-col gap-1.5">
         <label class="text-xs font-bold text-slate-300 mono">Target Vocabulary Words</label>
-        <input type="text" id="aiWordInput" placeholder="e.g. homeostasis, ribosome, automatized, glycolysis" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-cyan-500" />
+        <input type="text" id="aiWordInput" placeholder="e.g. morphophonemic, orthographic, automatized" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-cyan-500" />
         <span class="text-[10px] text-slate-500">Separate words with commas. The AI parses morphology and syllable structures automatically.</span>
       </div>
 
@@ -371,20 +371,16 @@
 Analyze the target vocabulary word(s): ${rawWords}.
 Break each word down into the exact JSON schema provided.
 
-CRITICAL PHONOLOGICAL & STRESS RULES:
-1. IPA & SYLLABIC ALIGNMENT:
+CRITICAL PHONOLOGICAL & ORTHOGRAPHIC RULES:
+1. STRICT ORTHOGRAPHIC CONCATENATION:
+   - Concatenating all syllables[i].text MUST EXACTLY reproduce the letters of targetWord in order, with NO added, changed, or omitted letters (e.g. for "morphophonemic", syllables must be ["mor", "pho", "pho", "ne", "mic"], NEVER adding letters like "morphic").
+2. IPA ACCURACY:
    - Provide standard General American IPA with explicit syllable periods (.) and primary stress mark (ˈ), e.g., /ˈɔː.tə.məˌtaɪzd/ or /ˌmɔːr.foʊ.fəˈniː.mɪk/.
-   - The number of chunks in "syllables" MUST match the syllable count of the word.
-2. STRESS ACCURACY:
-   - Mark "primaryStress": true on the EXACT syllable that carries the primary accent mark (ˈ) in the IPA. Exactly one syllable can have primaryStress: true.
-   - Specific morphological stress patterns:
-     * Base verb / -ize / -ized forms: Words like "automatize / automatized" keep primary stress on the initial root syllable ("AU-"), NOT the medial syllable.
-     * "-ic" / "-ics": Primary stress is ALWAYS on the PENULTIMATE syllable (the syllable directly preceding "-ic"), NEVER on "-ic" itself (e.g., mor-pho-pho-NE-mic, au-to-MAT-ic).
-     * "-tion" / "-sion" / "-ity": Primary stress is placed on the syllable directly preceding the suffix.
-3. SYLLABLE DIVISION & TYPES:
+3. STRESS RULES:
+   - Words ending in "-ic" or "-ics" (e.g., morphophonemic, orthographic, anaerobic) ALWAYS place primary stress on the PENULTIMATE syllable (the syllable directly preceding "-ic"), NEVER on "-ic" itself.
+   - Base verbs in "-ize" / "-ized" (e.g., automatize / automatized) keep primary stress on the initial root syllable ("AU-").
+4. SYLLABLE TYPES:
    - Syllables must be strictly categorized into standard orthographic types: "Closed", "Open", "VCe", "Vowel Team", "R-Controlled", "Diphthong", or "Consonant-le".
-4. MORPHOLOGY:
-   - Break into legitimate prefixes, combining forms, roots, and suffixes with mature, discipline-specific definitions.
 5. RETRIEVAL PROMPT:
    - Create a rigorous 30-second peer discussion prompt connecting the word's morphemic parts directly to its conceptual meaning in secondary academic contexts.`;
 
@@ -450,24 +446,53 @@ CRITICAL PHONOLOGICAL & STRESS RULES:
         const text = data.candidates[0].content.parts[0].text;
         const newDeck = JSON.parse(text);
 
-        // Cross-reference the IPA primary accent mark (ˈ) to guarantee stress alignment
+        // --- DETERMINISTIC STRESS & SYLLABLE SAFETY NET ---
         newDeck.forEach(card => {
-          if (card.phoneticIpa && Array.isArray(card.syllables) && card.syllables.length > 0) {
-            const rawIpa = card.phoneticIpa.replace(/^\/|\/$/g, '');
-            const ipaParts = rawIpa.split('.');
-            const primaryIpaIdx = ipaParts.findIndex(chunk => chunk.includes('ˈ'));
+          if (!card.syllables || card.syllables.length === 0) return;
+
+          // Clear stress booleans first
+          card.syllables.forEach(s => s.primaryStress = false);
+
+          const wordLower = (card.targetWord || "").toLowerCase().trim();
+          let resolvedIndex = -1;
+
+          // RULE 1: Suffix-driven Penultimate Stress (-ic, -ics, -tion, -sion, -ity)
+          // Always forces stress onto the syllable directly preceding the suffix.
+          if (/ic$|ics$\vert{}tion$|sion$\vert{}ity$/.test(wordLower) && card.syllables.length >= 2) {
+            resolvedIndex = card.syllables.length - 2;
+          }
+
+          // RULE 2: Direct IPA Primary Stress (ˈ) Anchor
+          if (resolvedIndex === -1 && card.phoneticIpa) {
+            const ipa = card.phoneticIpa;
+            const stressPos = ipa.indexOf('ˈ');
             
-            if (primaryIpaIdx !== -1 && primaryIpaIdx < card.syllables.length) {
-              card.syllables.forEach((syl, i) => {
-                syl.primaryStress = (i === primaryIpaIdx);
+            if (stressPos !== -1) {
+              const afterStress = ipa.slice(stressPos + 1).replace(/[ˌ\.\/\[\]]/g, '').toLowerCase();
+              let bestScore = -1;
+              card.syllables.forEach((syl, idx) => {
+                const sylClean = syl.text.toLowerCase().replace(/[^a-z]/g, '');
+                if (sylClean && (afterStress.startsWith(sylClean[0]) || afterStress.includes(sylClean))) {
+                  const score = sylClean.length;
+                  if (score > bestScore) {
+                    bestScore = score;
+                    resolvedIndex = idx;
+                  }
+                }
               });
-            } else {
-              const hasStress = card.syllables.some(s => s.primaryStress);
-              if (!hasStress) {
-                card.syllables[0].primaryStress = true;
-              }
             }
           }
+
+          // RULE 3: Fallback - if no match, preserve model selection or default to beat 0
+          if (resolvedIndex === -1) {
+            const rawIndex = card.syllables.findIndex(s => s.primaryStress);
+            resolvedIndex = rawIndex !== -1 ? rawIndex : 0;
+          }
+
+          // Final assignment
+          card.syllables.forEach((s, idx) => {
+            s.primaryStress = (idx === resolvedIndex);
+          });
         });
 
         currentDeck = newDeck;
