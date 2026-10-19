@@ -114,13 +114,12 @@
         <button onclick="toggleAiDrawer()" class="text-slate-400 hover:text-white text-lg font-bold">&times;</button>
       </div>
 
-      <div class="flex flex-col gap-1.5">
-        <label class="text-xs font-bold text-slate-300 mono flex justify-between">
-          <span>Gemini API Key</span>
-          <a href="https://aistudio.google.com/" target="_blank" class="text-cyan-400 hover:underline">Get Free Key &rarr;</a>
-        </label>
-        <input type="password" id="apiKeyInput" placeholder="AQ... or AIzaSy..." class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs mono text-cyan-300 focus:outline-none focus:border-cyan-500" />
-        <span class="text-[10px] text-slate-500">Stored locally in your browser cache. Never shared or sent elsewhere.</span>
+<div class="flex items-center justify-between p-2.5 bg-slate-950/80 rounded-lg border border-slate-800 text-xs mono">
+        <span class="text-slate-400">District Literacy Engine:</span>
+        <span class="text-emerald-400 font-bold flex items-center gap-1.5">
+          <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
+          Ready (Cloudflare Connected)
+        </span>
       </div>
 
       <div class="flex flex-col gap-1.5">
@@ -210,6 +209,11 @@
     </div>
   </div>
   <script>
+
+// Cloudflare Worker Proxy Config
+    const WORKER_URL = 'https://gemini-proxy.strand-troy.workers.dev';
+    const APP_KEY = 'BearLiteracy2026'; // Must match SHARED_APP_KEY in Cloudflare
+    
     const DEFAULT_DECK = [
       {
         targetWord: "morphophonemic",
@@ -573,19 +577,12 @@
     }
 
     async function generateDeckWithAI() {
-      const apiKey = document.getElementById('apiKeyInput').value.trim();
       const rawWords = document.getElementById('aiWordInput').value.trim();
 
-      if (!apiKey) {
-        alert('Please enter a Gemini API Key to enable instant generation.');
-        return;
-      }
       if (!rawWords) {
         alert('Please enter at least one vocabulary word.');
         return;
       }
-
-      localStorage.setItem('gemini_api_key', apiKey);
 
       const loading = document.getElementById('aiLoading');
       const genBtn = document.getElementById('generateBtn');
@@ -617,86 +614,28 @@
         return;
       }
 
-      const prompt = `Act as an expert in cognitive reading science, linguistic phonology, and LETRS-aligned secondary literacy.
-Analyze the target vocabulary word(s): ${wordsToQuery.join(', ')}.
-Break each word down into the exact JSON schema provided.
-
-CRITICAL PHONOLOGICAL & ORTHOGRAPHIC CONSTRAINTS:
-1. STRICT ORTHOGRAPHIC INTEGRITY (ZERO DROPPED LETTERS OR SYLLABLES):
-   - Concatenating all syllables[i].text MUST match targetWord character-for-character.
-2. GENERAL AMERICAN IPA & STRESS MARKS:
-   - Provide standard General American IPA formatted strictly with periods (.) and explicit primary stress symbol (ˈ).
-   - In combining-form compounds (e.g. neuro-, cardio-, electro-, micro- + stem), primary stress (ˈ) stays on the base stem, with secondary stress (ˌ) on the combining form.
-3. SUFFIX STRESS RULES:
-   - Suffixes "-ical", "-graphy", "-logy", "-metry", "-nomy": Stress is ANTEPENULTIMATE (3rd syllable from end: e.g., bib-li-OG-ra-phy, et-y-mo-LOG-i-cal).
-   - Suffixes "-ic", "-ics", "-istic", "-tion", "-sion", "-ity": Stress is PENULTIMATE (2nd syllable from end: e.g. mor-pho-pho-NE-mic).
-   - Verbs ending in "-ize" / "-ized": Stress remains on the initial base root (e.g. AU-to-ma-tized).
-4. SYLLABLE TYPES:
-   - Must be: "Closed", "Open", "VCe", "Vowel Team", "R-Controlled", "Diphthong", or "Consonant-le".
-5. DISCIPLINARY RETRIEVAL PROMPT (NO FLASHCARD QUESTIONS):
-   - NEVER ask trivial recall questions like "What is the word for...".
-   - Formulate a 30-second structured PEER DISCUSSION prompt that instructs students to turn to a partner and apply how the word's morphemes connect to conceptual understanding in academic contexts.`;
-
       try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${apiKey}`, {
+        const response = await fetch(WORKER_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'X-App-Key': APP_KEY
+          },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-              response_mime_type: "application/json",
-              response_schema: {
-                type: "ARRAY",
-                items: {
-                  type: "OBJECT",
-                  properties: {
-                    targetWord: { type: "STRING" },
-                    discipline: { type: "STRING" },
-                    etymology: { type: "STRING" },
-                    phoneticIpa: { type: "STRING" },
-                    syllables: {
-                      type: "ARRAY",
-                      items: {
-                        type: "OBJECT",
-                        properties: {
-                          text: { type: "STRING" },
-                          type: { 
-                            type: "STRING", 
-                            enum: ["Closed", "Open", "VCe", "Vowel Team", "R-Controlled", "Diphthong", "Consonant-le"] 
-                          },
-                          primaryStress: { type: "BOOLEAN" }
-                        },
-                        required: ["text", "type", "primaryStress"]
-                      }
-                    },
-                    articulatoryCaution: { type: "STRING" },
-                    morphemes: {
-                      type: "ARRAY",
-                      items: {
-                        type: "OBJECT",
-                        properties: {
-                          chunk: { type: "STRING" },
-                          type: { type: "STRING", enum: ["Prefix", "Root", "Suffix", "Combining Form", "Connector", "Inflection"] },
-                          meaning: { type: "STRING" }
-                        },
-                        required: ["chunk", "type", "meaning"]
-                      }
-                    },
-                    retrievalPrompt: { type: "STRING" }
-                  },
-                  required: ["targetWord", "discipline", "etymology", "phoneticIpa", "syllables", "articulatoryCaution", "morphemes", "retrievalPrompt"]
-                }
-              }
-            }
+            action: 'ORTHO_MAP',
+            words: wordsToQuery
           })
         });
 
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || `HTTP ${response.status}`);
+        }
+
         const data = await response.json();
-        if (data.error) throw new Error(data.error.message);
+        const aiCards = data.results || [];
 
-        const aiCards = JSON.parse(data.candidates[0].content.parts[0].text);
-
-        // --- PRECISE LINGUISTIC STRESS ALIGNMENT ENGINE ---
+        // Apply linguistic stress alignment rules
         aiCards.forEach(card => {
           if (!card.syllables || card.syllables.length === 0) return;
           card.syllables.forEach(s => s.primaryStress = false);
@@ -704,36 +643,19 @@ CRITICAL PHONOLOGICAL & ORTHOGRAPHIC CONSTRAINTS:
           const wLower = (card.targetWord || "").toLowerCase().trim();
           let targetIdx = -1;
 
-          // RULE 1: Antepenultimate Stress (3rd from end: length - 3)
-          // Covers: -ical (etymological), -graphy (bibliography), -logy (biology), -metry, -nomy
           if (/(ical|graphy|logy|metry|nomy)$/.test(wLower) && card.syllables.length >= 3) {
             targetIdx = card.syllables.length - 3;
-          }
-
-          // RULE 2: Penultimate Stress (2nd from end: length - 2)
-          // Covers: -ic, -ics, -istic, -tion, -sion, -ity
-          else if (/(ic|ics|istic|tion|sion|ity)$/.test(wLower) && card.syllables.length >= 2) {
-            targetIdx = card.syllables.length - 2;
-          }
-
-          // RULE 3: Base Verb -ize / -ized (AU-to-ma-tized)
-          else if (/(ize|ized)$/.test(wLower)) {
+          } else if (/(ic|ics|istic|tion|sion|ity)$/.test(wLower) && card.syllables.length >= 2) { targetIdx = card.syllables.length - 2; } else if (/(ize\vert{}ized)$/.test(wLower)) {
             targetIdx = 0;
-          }
-
-          // RULE 4: Combining-form Compounds (neuro-, cardio-, electro-, micro-)
-          else if (/^(neuro|cardio|electro|micro)/.test(wLower)) {
+          } else if (/^(neuro|cardio|electro|micro)/.test(wLower)) {
             let runningLen = 0;
             const pfx = wLower.match(/^(neuro|cardio|electro|micro)/)[0];
             card.syllables.forEach((syl, i) => {
-              if (targetIdx === -1 && runningLen >= pfx.length) {
-                targetIdx = i;
-              }
+              if (targetIdx === -1 && runningLen >= pfx.length) targetIdx = i;
               runningLen += syl.text.length;
             });
           }
 
-          // RULE 5: Direct IPA Anchor Matching (handles both ˈ and ')
           if (targetIdx === -1 && card.phoneticIpa) {
             const raw = card.phoneticIpa;
             const markerPos = raw.search(/[ˈ']/);
@@ -796,11 +718,50 @@ CRITICAL PHONOLOGICAL & ORTHOGRAPHIC CONSTRAINTS:
     }
 
     async function submitRecalibration() {
-      const apiKey = document.getElementById('apiKeyInput').value.trim() || localStorage.getItem('gemini_api_key');
-      if (!apiKey) {
-        alert("Please enter a Gemini API Key in the AI Deck Generator drawer first.");
-        return;
-      }
+  const card = currentDeck[currentIndex];
+  const selectedChips = Array.from(document.querySelectorAll('.diag-chip.border-amber-400'))
+    .map(c => c.getAttribute('data-issue'));
+  const teacherNote = document.getElementById('diagTeacherNote').value.trim();
+
+  if (selectedChips.length === 0 && !teacherNote) {
+    alert("Please select at least one issue or provide a note.");
+    return;
+  }
+
+  const diagLoading = document.getElementById('diagLoading');
+  const recalBtn = document.getElementById('recalibrateBtn');
+  diagLoading.classList.remove('hidden');
+  recalBtn.disabled = true;
+
+  try {
+    const response = await fetch(WORKER_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-App-Key': APP_KEY
+      },
+      body: JSON.stringify({
+        action: 'ORTHO_MAP',
+        words: [card.targetWord]
+      })
+    });
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    const repairedCard = data.results?.[0];
+
+    if (repairedCard) {
+      currentDeck[currentIndex] = repairedCard;
+      renderCard();
+      toggleDiagnosticModal();
+    }
+  } catch (err) {
+    alert("Recalibration Failed: " + err.message);
+  } finally {
+    diagLoading.classList.add('hidden');
+    recalBtn.disabled = false;
+  }
+}
 
       const card = currentDeck[currentIndex];
       const selectedChips = Array.from(document.querySelectorAll('.diag-chip.border-amber-400'))
