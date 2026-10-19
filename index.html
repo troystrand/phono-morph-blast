@@ -208,12 +208,11 @@
       </div>
     </div>
   </div>
-  <script>
-
-// Cloudflare Worker Proxy Config
+<script>
+    // Cloudflare Worker Proxy Config
     const WORKER_URL = 'https://gemini-proxy.strand-troy.workers.dev';
     const APP_KEY = 'BearLiteracy2026'; // Must match SHARED_APP_KEY in Cloudflare
-    
+
     const DEFAULT_DECK = [
       {
         targetWord: "morphophonemic",
@@ -413,13 +412,6 @@
       }
     };
 
-    window.addEventListener('DOMContentLoaded', () => {
-      const savedKey = localStorage.getItem('gemini_api_key');
-      if (savedKey) {
-        document.getElementById('apiKeyInput').value = savedKey;
-      }
-    });
-
     // --- SYNTH AUDIO ENGINE ---
     let audioCtx = null;
     function getAudioContext() {
@@ -549,7 +541,7 @@
       }
     });
 
-    // --- AI GENERATOR ENGINE ---
+    // --- MODAL CONTROLLERS ---
     function toggleAiDrawer() {
       document.getElementById('aiDrawer').classList.toggle('hidden');
     }
@@ -576,6 +568,49 @@
       }
     }
 
+    function alignLinguisticStress(card) {
+      if (!card.syllables || card.syllables.length === 0) return;
+      card.syllables.forEach(s => s.primaryStress = false);
+
+      const wLower = (card.targetWord || "").toLowerCase().trim();
+      let targetIdx = -1;
+
+      if (/(ical|graphy|logy|metry|nomy)$/.test(wLower) && card.syllables.length >= 3) {
+        targetIdx = card.syllables.length - 3;
+      } else if (/(ic|ics|istic|tion|sion|ity)$/.test(wLower) && card.syllables.length >= 2) { targetIdx = card.syllables.length - 2; } else if (/(ize\vert{}ized)$/.test(wLower)) {
+        targetIdx = 0;
+      } else if (/^(neuro|cardio|electro|micro)/.test(wLower)) {
+        let runningLen = 0;
+        const pfx = wLower.match(/^(neuro|cardio|electro|micro)/)[0];
+        card.syllables.forEach((syl, i) => {
+          if (targetIdx === -1 && runningLen >= pfx.length) targetIdx = i;
+          runningLen += syl.text.length;
+        });
+      }
+
+      if (targetIdx === -1 && card.phoneticIpa) {
+        const raw = card.phoneticIpa;
+        const markerPos = raw.search(/[ˈ']/);
+        if (markerPos !== -1) {
+          const post = raw.slice(markerPos + 1).replace(/[ˌ,.\/\[\]]/g, '').toLowerCase();
+          let maxLen = -1;
+          card.syllables.forEach((syl, i) => {
+            const sClean = syl.text.toLowerCase().replace(/[^a-z]/g, '');
+            if (sClean && (post.startsWith(sClean[0]) || post.includes(sClean))) {
+              if (sClean.length > maxLen) {
+                maxLen = sClean.length;
+                targetIdx = i;
+              }
+            }
+          });
+        }
+      }
+
+      if (targetIdx === -1) targetIdx = 0;
+      card.syllables.forEach((s, i) => s.primaryStress = (i === targetIdx));
+    }
+
+    // --- AI GENERATOR ENGINE ---
     async function generateDeckWithAI() {
       const rawWords = document.getElementById('aiWordInput').value.trim();
 
@@ -593,7 +628,6 @@
       const generatedCards = [];
       const wordsToQuery = [];
 
-      // Check verified reference cache first
       words.forEach(w => {
         const lower = w.toLowerCase();
         if (VERIFIED_LEXICON[lower]) {
@@ -603,7 +637,6 @@
         }
       });
 
-      // If all words matched the ground truth cache, render immediately
       if (wordsToQuery.length === 0) {
         currentDeck = generatedCards;
         currentIndex = 0;
@@ -635,47 +668,8 @@
         const data = await response.json();
         const aiCards = data.results || [];
 
-        // Apply linguistic stress alignment rules
         aiCards.forEach(card => {
-          if (!card.syllables || card.syllables.length === 0) return;
-          card.syllables.forEach(s => s.primaryStress = false);
-
-          const wLower = (card.targetWord || "").toLowerCase().trim();
-          let targetIdx = -1;
-
-          if (/(ical|graphy|logy|metry|nomy)$/.test(wLower) && card.syllables.length >= 3) {
-            targetIdx = card.syllables.length - 3;
-          } else if (/(ic|ics|istic|tion|sion|ity)$/.test(wLower) && card.syllables.length >= 2) { targetIdx = card.syllables.length - 2; } else if (/(ize\vert{}ized)$/.test(wLower)) {
-            targetIdx = 0;
-          } else if (/^(neuro|cardio|electro|micro)/.test(wLower)) {
-            let runningLen = 0;
-            const pfx = wLower.match(/^(neuro|cardio|electro|micro)/)[0];
-            card.syllables.forEach((syl, i) => {
-              if (targetIdx === -1 && runningLen >= pfx.length) targetIdx = i;
-              runningLen += syl.text.length;
-            });
-          }
-
-          if (targetIdx === -1 && card.phoneticIpa) {
-            const raw = card.phoneticIpa;
-            const markerPos = raw.search(/[ˈ']/);
-            if (markerPos !== -1) {
-              const post = raw.slice(markerPos + 1).replace(/[ˌ,.\/\[\]]/g, '').toLowerCase();
-              let maxLen = -1;
-              card.syllables.forEach((syl, i) => {
-                const sClean = syl.text.toLowerCase().replace(/[^a-z]/g, '');
-                if (sClean && (post.startsWith(sClean[0]) || post.includes(sClean))) {
-                  if (sClean.length > maxLen) {
-                    maxLen = sClean.length;
-                    targetIdx = i;
-                  }
-                }
-              });
-            }
-          }
-
-          if (targetIdx === -1) targetIdx = 0;
-          card.syllables.forEach((s, i) => s.primaryStress = (i === targetIdx));
+          alignLinguisticStress(card);
           generatedCards.push(card);
         });
 
@@ -690,7 +684,8 @@
         genBtn.disabled = false;
       }
     }
-// --- DIAGNOSTIC MODAL CONTROLLERS ---
+
+    // --- DIAGNOSTIC MODAL CONTROLLERS ---
     function toggleDiagnosticModal() {
       document.getElementById('diagnosticModal').classList.toggle('hidden');
     }
@@ -700,7 +695,6 @@
       document.getElementById('diagTargetWord').textContent = card.targetWord;
       document.getElementById('diagTeacherNote').value = '';
       
-      // Reset chips
       document.querySelectorAll('.diag-chip').forEach(c => {
         c.classList.remove('border-amber-400', 'bg-amber-500/20', 'text-amber-300');
         c.classList.add('border-slate-700', 'bg-slate-950', 'text-slate-300');
@@ -718,51 +712,6 @@
     }
 
     async function submitRecalibration() {
-  const card = currentDeck[currentIndex];
-  const selectedChips = Array.from(document.querySelectorAll('.diag-chip.border-amber-400'))
-    .map(c => c.getAttribute('data-issue'));
-  const teacherNote = document.getElementById('diagTeacherNote').value.trim();
-
-  if (selectedChips.length === 0 && !teacherNote) {
-    alert("Please select at least one issue or provide a note.");
-    return;
-  }
-
-  const diagLoading = document.getElementById('diagLoading');
-  const recalBtn = document.getElementById('recalibrateBtn');
-  diagLoading.classList.remove('hidden');
-  recalBtn.disabled = true;
-
-  try {
-    const response = await fetch(WORKER_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-App-Key': APP_KEY
-      },
-      body: JSON.stringify({
-        action: 'ORTHO_MAP',
-        words: [card.targetWord]
-      })
-    });
-
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const data = await response.json();
-    const repairedCard = data.results?.[0];
-
-    if (repairedCard) {
-      currentDeck[currentIndex] = repairedCard;
-      renderCard();
-      toggleDiagnosticModal();
-    }
-  } catch (err) {
-    alert("Recalibration Failed: " + err.message);
-  } finally {
-    diagLoading.classList.add('hidden');
-    recalBtn.disabled = false;
-  }
-}
-
       const card = currentDeck[currentIndex];
       const selectedChips = Array.from(document.querySelectorAll('.diag-chip.border-amber-400'))
         .map(c => c.getAttribute('data-issue'));
@@ -778,120 +727,29 @@
       diagLoading.classList.remove('hidden');
       recalBtn.disabled = true;
 
-      const auditPrompt = `You are an expert reading scientist and phonologist auditing an educational literacy card.
-A secondary literacy specialist flagged an error in this vocabulary card.
-
-CURRENT DEFECTIVE CARD JSON:
-${JSON.stringify(card, null, 2)}
-
-FLAGGED DEFECTS:
-${selectedChips.map(issue => `- ${issue}`).join('\n')}
-${teacherNote ? `- Teacher Note: "${teacherNote}"` : ''}
-
-CORRECTION MANDATE:
-1. Re-analyze General American phonetic dictionaries and LETRS orthographic mapping rules.
-2. If stress was wrong, accurately locate the primary accent mark (ˈ) in the IPA and ensure exactly one syllable has "primaryStress": true.
-3. If letters were dropped or joined improperly, ensure concatenating all syllables[i].text strictly matches "${card.targetWord}" character-for-character.
-4. Output ONLY ONE corrected object matching the original JSON schema.`;
-
       try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${apiKey}`, {
+        const response = await fetch(WORKER_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'X-App-Key': APP_KEY
+          },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: auditPrompt }] }],
-            generationConfig: {
-              response_mime_type: "application/json",
-              response_schema: {
-                type: "OBJECT",
-                properties: {
-                  targetWord: { type: "STRING" },
-                  discipline: { type: "STRING" },
-                  etymology: { type: "STRING" },
-                  phoneticIpa: { type: "STRING" },
-                  syllables: {
-                    type: "ARRAY",
-                    items: {
-                      type: "OBJECT",
-                      properties: {
-                        text: { type: "STRING" },
-                        type: { 
-                          type: "STRING", 
-                          enum: ["Closed", "Open", "VCe", "Vowel Team", "R-Controlled", "Diphthong", "Consonant-le"] 
-                        },
-                        primaryStress: { type: "BOOLEAN" }
-                      },
-                      required: ["text", "type", "primaryStress"]
-                    }
-                  },
-                  articulatoryCaution: { type: "STRING" },
-                  morphemes: {
-                    type: "ARRAY",
-                    items: {
-                      type: "OBJECT",
-                      properties: {
-                        chunk: { type: "STRING" },
-                        type: { type: "STRING", enum: ["Prefix", "Root", "Suffix", "Combining Form", "Connector", "Inflection"] },
-                        meaning: { type: "STRING" }
-                      },
-                      required: ["chunk", "type", "meaning"]
-                    }
-                  },
-                  retrievalPrompt: { type: "STRING" }
-                },
-                required: ["targetWord", "discipline", "etymology", "phoneticIpa", "syllables", "articulatoryCaution", "morphemes", "retrievalPrompt"]
-              }
-            }
+            action: 'ORTHO_MAP',
+            words: [card.targetWord]
           })
         });
 
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
-        if (data.error) throw new Error(data.error.message);
+        const repairedCard = data.results?.[0];
 
-        const repairedCard = JSON.parse(data.candidates[0].content.parts[0].text);
-
-        // Run through the deterministic stress rules to ensure alignment
-        const wLower = (repairedCard.targetWord || "").toLowerCase().trim();
-        let targetIdx = -1;
-
-        if (/(ical|graphy|logy|metry|nomy)$/.test(wLower) && repairedCard.syllables.length >= 3) {
-          targetIdx = repairedCard.syllables.length - 3;
-        } else if (/(ic|ics|istic|tion|sion|ity)$/.test(wLower) && repairedCard.syllables.length >= 2) { targetIdx = repairedCard.syllables.length - 2; } else if (/(ize\vert{}ized)$/.test(wLower)) {
-          targetIdx = 0;
-        } else if (/^(neuro|cardio|electro|micro)/.test(wLower)) {
-          let runningLen = 0;
-          const pfx = wLower.match(/^(neuro|cardio|electro|micro)/)[0];
-          repairedCard.syllables.forEach((syl, i) => {
-            if (targetIdx === -1 && runningLen >= pfx.length) targetIdx = i;
-            runningLen += syl.text.length;
-          });
+        if (repairedCard) {
+          alignLinguisticStress(repairedCard);
+          currentDeck[currentIndex] = repairedCard;
+          renderCard();
+          toggleDiagnosticModal();
         }
-
-        if (targetIdx === -1 && repairedCard.phoneticIpa) {
-          const markerPos = repairedCard.phoneticIpa.search(/[ˈ']/);
-          if (markerPos !== -1) {
-            const post = repairedCard.phoneticIpa.slice(markerPos + 1).replace(/[ˌ,.\/\[\]]/g, '').toLowerCase();
-            let maxLen = -1;
-            repairedCard.syllables.forEach((syl, i) => {
-              const sClean = syl.text.toLowerCase().replace(/[^a-z]/g, '');
-              if (sClean && (post.startsWith(sClean[0]) || post.includes(sClean))) {
-                if (sClean.length > maxLen) {
-                  maxLen = sClean.length;
-                  targetIdx = i;
-                }
-              }
-            });
-          }
-        }
-
-        if (targetIdx !== -1) {
-          repairedCard.syllables.forEach((s, i) => s.primaryStress = (i === targetIdx));
-        }
-
-        // Hot-swap the card in the active deck and re-render
-        currentDeck[currentIndex] = repairedCard;
-        renderCard();
-        toggleDiagnosticModal();
       } catch (err) {
         alert("Recalibration Failed: " + err.message);
       } finally {
@@ -899,6 +757,8 @@ CORRECTION MANDATE:
         recalBtn.disabled = false;
       }
     }
+
+    // Initial render on boot
     renderCard();
   </script>
 </body>
