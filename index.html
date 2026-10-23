@@ -618,7 +618,7 @@
       const aiCards = parseAiResponse(data);
 
       if (aiCards.length === 0) {
-        console.error("Received payload from proxy:", data);
+        console.error("PROXY PAYLOAD DUMP:\n" + JSON.stringify(data, null, 2));
         throw new Error("Unable to parse card structures from the AI response.");
       }
 
