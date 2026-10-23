@@ -499,6 +499,67 @@
     }
   }
 
+  // --- ROBUST RESPONSE UNPACKER ---
+  function parseAiResponse(data) {
+    // 1. Direct Array
+    if (Array.isArray(data) && data.length > 0 && data[0].targetWord) {
+      return data;
+    }
+
+    // 2. Direct Named Properties that are Arrays
+    for (const key of ['results', 'cards', 'words', 'deck']) {
+      if (Array.isArray(data[key]) && data[key].length > 0 && data[key][0].targetWord) {
+        return data[key];
+      }
+    }
+
+    // 3. Extract Raw String from Gemini / Proxy Envelope
+    let rawStr = '';
+    if (typeof data === 'string') {
+      rawStr = data;
+    } else if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+      rawStr = data.candidates[0].content.parts[0].text;
+    } else if (data?.text && typeof data.text === 'string') {
+      rawStr = data.text;
+    } else if (data?.response && typeof data.response === 'string') {
+      rawStr = data.response;
+    } else if (data?.result && typeof data.result === 'string') {
+      rawStr = data.result;
+    }
+
+    if (rawStr) {
+      // Strip markdown code fences if present
+      const cleaned = rawStr.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+      try {
+        const parsed = JSON.parse(cleaned);
+        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed.results)) return parsed.results;
+        if (Array.isArray(parsed.cards)) return parsed.cards;
+        if (Array.isArray(parsed.words)) return parsed.words;
+      } catch (e) {
+        // Fallback: search for bracketed JSON inside the string
+        const jsonMatch = cleaned.match(/\[\s*\{[\s\S]*\}\s*\]/);
+        if (jsonMatch) {
+          try {
+            const parsed = JSON.parse(jsonMatch[0]);
+            if (Array.isArray(parsed)) return parsed;
+          } catch (err) {}
+        }
+      }
+    }
+
+    // 4. Safe Object values inspection (filtering out candidates array)
+    if (typeof data === 'object' && data !== null) {
+      for (const val of Object.values(data)) {
+        if (Array.isArray(val) && val.length > 0 && val[0]?.targetWord) {
+          return val;
+        }
+      }
+    }
+
+    return [];
+  }
+
   // --- AI ENGINE WITH NORMALIZATION & FALLBACK PARSING ---
   async function generateDeckWithAI() {
     const rawWords = document.getElementById('aiWordInput').value.trim();
@@ -554,19 +615,11 @@
       }
 
       const data = await response.json();
-      
-      let aiCards = [];
-      if (Array.isArray(data)) {
-        aiCards = data;
-      } else if (Array.isArray(data.results)) {
-        aiCards = data.results;
-      } else if (Array.isArray(data.cards)) {
-        aiCards = data.cards;
-      } else if (Array.isArray(data.words)) {
-        aiCards = data.words;
-      } else if (typeof data === 'object' && data !== null) {
-        const found = Object.values(data).find(v => Array.isArray(v));
-        if (found) aiCards = found;
+      const aiCards = parseAiResponse(data);
+
+      if (aiCards.length === 0) {
+        console.error("Received payload from proxy:", data);
+        throw new Error("Unable to parse card structures from the AI response.");
       }
 
       aiCards.forEach(card => {
@@ -613,10 +666,6 @@
         generatedCards.push(card);
       });
 
-      if (generatedCards.length === 0) {
-        throw new Error("No usable card structures could be extracted.");
-      }
-
       currentDeck = generatedCards;
       currentIndex = 0;
       renderCard();
@@ -662,13 +711,16 @@
 
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
-      const repairedCard = (data.results && data.results[0]) || (Array.isArray(data) && data[0]);
+      const cards = parseAiResponse(data);
+      const repairedCard = cards[0];
 
       if (repairedCard) {
         alignLinguisticStress(repairedCard);
         currentDeck[currentIndex] = repairedCard;
         renderCard();
         toggleDiagnosticModal();
+      } else {
+        throw new Error("Could not parse recalibrated card from response.");
       }
     } catch (err) {
       alert("Recalibration Failed: " + err.message);
