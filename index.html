@@ -501,16 +501,17 @@
 
   // --- ROBUST RESPONSE UNPACKER ---
   function parseAiResponse(data) {
+    if (!data) return [];
+
+    // Helper to check if an array looks like cards or raw ortho results
+    const isUsableList = (arr) => Array.isArray(arr) && arr.length > 0 && (arr[0].targetWord || arr[0].word);
+
     // 1. Direct Array
-    if (Array.isArray(data) && data.length > 0 && data[0].targetWord) {
-      return data;
-    }
+    if (isUsableList(data)) return data;
 
     // 2. Direct Named Properties that are Arrays
     for (const key of ['results', 'cards', 'words', 'deck']) {
-      if (Array.isArray(data[key]) && data[key].length > 0 && data[key][0].targetWord) {
-        return data[key];
-      }
+      if (isUsableList(data[key])) return data[key];
     }
 
     // 3. Extract Raw String from Gemini / Proxy Envelope
@@ -519,41 +520,37 @@
       rawStr = data;
     } else if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
       rawStr = data.candidates[0].content.parts[0].text;
-    } else if (data?.text && typeof data.text === 'string') {
+    } else if (typeof data.text === 'string') {
       rawStr = data.text;
-    } else if (data?.response && typeof data.response === 'string') {
+    } else if (typeof data.response === 'string') {
       rawStr = data.response;
-    } else if (data?.result && typeof data.result === 'string') {
+    } else if (typeof data.result === 'string') {
       rawStr = data.result;
     }
 
     if (rawStr) {
-      // Strip markdown code fences if present
       const cleaned = rawStr.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
       try {
         const parsed = JSON.parse(cleaned);
-        if (Array.isArray(parsed)) return parsed;
-        if (Array.isArray(parsed.results)) return parsed.results;
-        if (Array.isArray(parsed.cards)) return parsed.cards;
-        if (Array.isArray(parsed.words)) return parsed.words;
+        if (isUsableList(parsed)) return parsed;
+        if (isUsableList(parsed.results)) return parsed.results;
+        if (isUsableList(parsed.cards)) return parsed.cards;
+        if (isUsableList(parsed.words)) return parsed.words;
       } catch (e) {
-        // Fallback: search for bracketed JSON inside the string
         const jsonMatch = cleaned.match(/\[\s*\{[\s\S]*\}\s*\]/);
         if (jsonMatch) {
           try {
             const parsed = JSON.parse(jsonMatch[0]);
-            if (Array.isArray(parsed)) return parsed;
+            if (isUsableList(parsed)) return parsed;
           } catch (err) {}
         }
       }
     }
 
-    // 4. Safe Object values inspection (filtering out candidates array)
+    // 4. Safe Object values inspection
     if (typeof data === 'object' && data !== null) {
       for (const val of Object.values(data)) {
-        if (Array.isArray(val) && val.length > 0 && val[0]?.targetWord) {
-          return val;
-        }
+        if (isUsableList(val)) return val;
       }
     }
 
@@ -622,45 +619,74 @@
         throw new Error("Unable to parse card structures from the AI response.");
       }
 
-      aiCards.forEach(card => {
-        if (!card.syllables || !Array.isArray(card.syllables)) {
-          const rawSyllables = card.syllablesList || card.chunks || [];
-          if (Array.isArray(rawSyllables) && rawSyllables.length > 0) {
-            card.syllables = rawSyllables;
-          } else {
-            card.syllables = (card.targetWord || "").split(/[-·•.]/).filter(Boolean).map(s => ({
-              text: s,
-              type: "Syllable",
+      aiCards.forEach(rawCard => {
+        const wordStr = rawCard.targetWord || rawCard.word || "Unknown";
+        
+        // Normalize syllables
+        let sylList = [];
+        if (Array.isArray(rawCard.syllables) && rawCard.syllables.length > 0) {
+          sylList = rawCard.syllables.map(syl => {
+            if (typeof syl === 'string') return { text: syl, type: "Syllable", primaryStress: false };
+            return {
+              text: syl.text || syl.chunk || syl.syllable || '',
+              type: syl.type || 'Syllable',
+              primaryStress: !!syl.primaryStress
+            };
+          });
+        } else {
+          // If the worker gave syllable_types but no text chunks, cut the word roughly or split by dots/hyphens
+          const rawTypes = Array.isArray(rawCard.syllable_types) ? rawCard.syllable_types : [];
+          const chunks = wordStr.split(/[-·•.]/).filter(Boolean);
+          
+          if (chunks.length > 1) {
+            sylList = chunks.map((c, i) => ({
+              text: c,
+              type: rawTypes[i] || "Syllable",
               primaryStress: false
             }));
+          } else if (rawTypes.length > 0) {
+            // Rough uniform chunking if only syllable types were returned
+            const step = Math.ceil(wordStr.length / rawTypes.length);
+            sylList = rawTypes.map((t, i) => ({
+              text: wordStr.slice(i * step, (i + 1) * step),
+              type: t.charAt(0).toUpperCase() + t.slice(1),
+              primaryStress: false
+            }));
+          } else {
+            sylList = [{ text: wordStr, type: "Syllable", primaryStress: false }];
           }
         }
 
-        card.syllables = card.syllables.map(syl => {
-          if (typeof syl === 'string') {
-            return { text: syl, type: "Syllable", primaryStress: false };
-          }
-          return {
-            text: syl.text || syl.chunk || syl.syllable || '',
-            type: syl.type || 'Syllable',
-            primaryStress: !!syl.primaryStress
-          };
-        });
-
-        if (!card.morphemes || !Array.isArray(card.morphemes)) {
-          card.morphemes = [];
-        } else {
-          card.morphemes = card.morphemes.map(m => {
-            if (typeof m === 'string') {
-              return { chunk: m, type: "Morpheme", meaning: "" };
-            }
+        // Normalize morphemes
+        let morphList = [];
+        if (Array.isArray(rawCard.morphemes) && rawCard.morphemes.length > 0) {
+          morphList = rawCard.morphemes.map(m => {
+            if (typeof m === 'string') return { chunk: m, type: "Morpheme", meaning: "" };
             return {
               chunk: m.chunk || m.text || m.morpheme || '',
               type: m.type || 'Morpheme',
               meaning: m.meaning || m.definition || ''
             };
           });
+        } else if (Array.isArray(rawCard.graphemes)) {
+          // Fallback: show grapheme/phoneme mapping in the morpheme slots
+          morphList = [
+            { chunk: rawCard.graphemes.join(' · '), type: "Graphemes", meaning: "Spelling correspondence" },
+            { chunk: (rawCard.phonemes || []).join(' '), type: "Phonemes", meaning: "Spoken sounds" }
+          ];
         }
+
+        // Assemble standard card
+        const card = {
+          targetWord: wordStr,
+          discipline: rawCard.discipline || "Academic Vocabulary",
+          etymology: rawCard.etymology || (rawCard.language_of_origin ? `Origin: ${rawCard.language_of_origin}` : "Latin/Greek Roots"),
+          phoneticIpa: rawCard.phoneticIpa || (Array.isArray(rawCard.phonemes) ? rawCard.phonemes.join('') : ""),
+          syllables: sylList,
+          articulatoryCaution: rawCard.articulatoryCaution || rawCard.articulation_notes || (rawCard.irregular_parts?.length ? `Note irregular spelling: ${rawCard.irregular_parts.join(', ')}` : "Standard articulation."),
+          morphemes: morphList,
+          retrievalPrompt: rawCard.retrievalPrompt || `Discuss how the spelling of "${wordStr}" reflects its meaningful base parts and pronunciation.`
+        };
 
         alignLinguisticStress(card);
         generatedCards.push(card);
