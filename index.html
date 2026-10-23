@@ -209,218 +209,52 @@
     </div>
   </div>
 <script>
-    // Cloudflare Worker Proxy Config
-    const WORKER_URL = 'https://gemini-proxy.strand-troy.workers.dev';
-    const APP_KEY = 'gobears'; // Must match SHARED_APP_KEY in Cloudflare
+  // Cloudflare Worker Proxy Config
+  const WORKER_URL = 'https://gemini-proxy.strand-troy.workers.dev';
+  const APP_KEY = 'gobears';
 
-    const DEFAULT_DECK = [
-      {
-        targetWord: "morphophonemic",
-        discipline: "Linguistics / LETRS",
-        etymology: "Greek morphē (form) + phōnē (sound) + -emic",
-        phoneticIpa: "/ˌmɔːr.foʊ.fəˈniː.mɪk/",
-        syllables: [
-          { text: "mor", type: "R-Controlled", primaryStress: false },
-          { text: "pho", type: "Open", primaryStress: false },
-          { text: "pho", type: "Open", primaryStress: false },
-          { text: "ne", type: "Open", primaryStress: true },
-          { text: "mic", type: "Closed", primaryStress: false }
-        ],
-        articulatoryCaution: "Accent the fourth syllable: mor-pho-pho-NE-mic. Blend the two distinct /f/ sounds without eliding the unstressed medial /fə/.",
-        morphemes: [
-          { chunk: "morph-", type: "Combining Form", meaning: "form or structure" },
-          { chunk: "-o-", type: "Connector", meaning: "combining vowel" },
-          { chunk: "phon", type: "Root", meaning: "sound or voice" },
-          { chunk: "-emic", type: "Suffix", meaning: "pertaining to linguistic units" }
-        ],
-        retrievalPrompt: "Discuss with a peer how understanding morphophonemic spelling patterns explains why English spelling preserves root structures despite vowel shifts (e.g., 'heal' and 'health')."
-      },
-      {
-        targetWord: "orthographic",
-        discipline: "Cognitive Science / Reading",
-        etymology: "Greek orthos (straight, correct) + graphein (to write) + -ic",
-        phoneticIpa: "/ˌɔːr.θəˈɡræf.ɪk/",
-        syllables: [
-          { text: "or", type: "R-Controlled", primaryStress: false },
-          { text: "tho", type: "Open", primaryStress: false },
-          { text: "graph", type: "Closed", primaryStress: true },
-          { text: "ic", type: "Closed", primaryStress: false }
-        ],
-        articulatoryCaution: "Accent the penultimate syllable: or-tho-GRAPH-ic. Articulate the unvoiced interdental fricative /θ/ cleanly before transitioning to /ɡ/.",
-        morphemes: [
-          { chunk: "ortho-", type: "Combining Form", meaning: "straight, correct, standard" },
-          { chunk: "graph", type: "Root", meaning: "write, record, or represent" },
-          { chunk: "-ic", type: "Suffix", meaning: "pertaining to or characterized by" }
-        ],
-        retrievalPrompt: "Explain to your partner why orthographic mapping is essential for establishing rapid, effortless sight vocabulary in adolescent readers."
-      },
-      {
-        targetWord: "automatized",
-        discipline: "Cognitive Psychology / Skill Acquisition",
-        etymology: "Greek automatos (self-acting) + -ize (verbal suffix) + -ed (past participle)",
-        phoneticIpa: "/ˈɔː.tə.məˌtaɪzd/",
-        syllables: [
-          { text: "au", type: "Vowel Team", primaryStress: true },
-          { text: "to", type: "Open", primaryStress: false },
-          { text: "ma", type: "Open", primaryStress: false },
-          { text: "tized", type: "VCe", primaryStress: false }
-        ],
-        articulatoryCaution: "Accent the initial syllable: AU-to-ma-tized. Unstressed vowels reduce to schwa /ə/ before the secondary accent on 'tized'.",
-        morphemes: [
-          { chunk: "auto-", type: "Prefix", meaning: "self or same" },
-          { chunk: "mat", type: "Root", meaning: "acting independently" },
-          { chunk: "-ize", type: "Suffix", meaning: "to make or render" },
-          { chunk: "-ed", type: "Inflection", meaning: "past participle state" }
-        ],
-        retrievalPrompt: "Explain to your partner how a reading skill becomes 'automatized' in terms of cognitive load theory and freeing up working memory."
-      },
-      {
-        targetWord: "phonological",
-        discipline: "Linguistics / LETRS",
-        etymology: "Greek phōnē (sound) + logos (study) + -ical",
-        phoneticIpa: "/ˌfoʊ.nəˈlɑː.dʒɪ.kəl/",
-        syllables: [
-          { text: "pho", type: "Open", primaryStress: false },
-          { text: "no", type: "Open", primaryStress: false },
-          { text: "log", type: "Closed", primaryStress: true },
-          { text: "i", type: "Open", primaryStress: false },
-          { text: "cal", type: "Closed", primaryStress: false }
-        ],
-        articulatoryCaution: "Accent the antepenultimate syllable: pho-no-LOG-i-cal. The vowel in 'log' carries full open articulation /ɑː/, reducing the preceding vowel to schwa /ə/.",
-        morphemes: [
-          { chunk: "phon", type: "Root", meaning: "sound or voice" },
-          { chunk: "-o-", type: "Connector", meaning: "combining vowel" },
-          { chunk: "log", type: "Root", meaning: "word, reason, or study" },
-          { chunk: "-ical", type: "Suffix", meaning: "pertaining to" }
-        ],
-        retrievalPrompt: "Collaborate with a partner to explain why phonological processing remains foundational for polysyllabic decoding even in high school courses."
-      },
-      {
-        targetWord: "metalinguistic",
-        discipline: "Psycholinguistics / Literacy",
-        etymology: "Greek meta (beyond, higher) + Latin lingua (language) + -istic",
-        phoneticIpa: "/ˌmɛt.ə.lɪŋˈɡwɪs.tɪk/",
-        syllables: [
-          { text: "met", type: "Closed", primaryStress: false },
-          { text: "a", type: "Open", primaryStress: false },
-          { text: "lin", type: "Closed", primaryStress: false },
-          { text: "guis", type: "Closed", primaryStress: true },
-          { text: "tic", type: "Closed", primaryStress: false }
-        ],
-        articulatoryCaution: "Accent the fourth syllable: met-a-lin-GUIS-tic. Articulate the velar glide blend /ɡw/ cleanly without dropping the nasal coda /ŋ/.",
-        morphemes: [
-          { chunk: "meta-", type: "Prefix", meaning: "beyond or higher level" },
-          { chunk: "lingu", type: "Root", meaning: "language or tongue" },
-          { chunk: "-istic", type: "Suffix", meaning: "pertaining to the practice or science of" }
-        ],
-        retrievalPrompt: "Evaluate how metalinguistic awareness allows adolescent readers to treat language as an object of analysis during complex disciplinary text reading."
-      }
-    ];
-
-    let currentDeck = [...DEFAULT_DECK];
-    let currentIndex = 0;
-    let currentTap = -1;
-
-    // --- DISCIPLINARY REFERENCE LEXICON (GROUND TRUTH CACHE) ---
-    const VERIFIED_LEXICON = {
-      "morphophonemic": DEFAULT_DECK[0],
-      "orthographic": DEFAULT_DECK[1],
-      "automatized": DEFAULT_DECK[2],
-      "phonological": DEFAULT_DECK[3],
-      "metalinguistic": DEFAULT_DECK[4],
-      "bibliography": {
-        targetWord: "bibliography",
-        discipline: "Information Literacy / Research",
-        etymology: "Greek biblion (book) + graphein (to write) + -y",
-        phoneticIpa: "/ˌbɪb.liˈɑː.ɡrə.fi/",
-        syllables: [
-          { text: "bib", type: "Closed", primaryStress: false },
-          { text: "li", type: "Open", primaryStress: false },
-          { text: "og", type: "Closed", primaryStress: true },
-          { text: "ra", type: "Open", primaryStress: false },
-          { text: "phy", type: "Open", primaryStress: false }
-        ],
-        articulatoryCaution: "Accent the third syllable: bib-li-OG-ra-phy. The vowel in 'og' carries primary open accent /ɑː/, causing 'ra' to reduce to schwa /rə/.",
-        morphemes: [
-          { chunk: "biblio-", type: "Combining Form", meaning: "book or books" },
-          { chunk: "graph", type: "Root", meaning: "write, record, or list" },
-          { chunk: "-y", type: "Suffix", meaning: "process, condition, or result of" }
-        ],
-        retrievalPrompt: "Turn to your partner: Explain how the combined roots 'biblio-' (book) and 'graph' (write/record) help explain why a bibliography is distinct from a simple index or glossary."
-      },
-      "anaerobic": {
-        targetWord: "anaerobic",
-        discipline: "Biology / Cellular Energetics",
-        etymology: "Greek (an- [without] + aer [air/oxygen] + bios [life])",
-        phoneticIpa: "/ˌæn.ɛˈroʊ.bɪk/",
-        syllables: [
-          { text: "an", type: "Closed", primaryStress: false },
-          { text: "aer", type: "R-Controlled", primaryStress: true },
-          { text: "o", type: "Open", primaryStress: false },
-          { text: "bic", type: "Closed", primaryStress: false }
-        ],
-        articulatoryCaution: "Accent the second syllable: an-AER-o-bic. Blend the vowel digraph 'ae' cleanly with the /r/ coda without inserting an extra syllable beat.",
-        morphemes: [
-          { chunk: "an-", type: "Prefix", meaning: "not / without" },
-          { chunk: "aer", type: "Root", meaning: "air / oxygen" },
-          { chunk: "-o-", type: "Connector", meaning: "Greek combining vowel" },
-          { chunk: "-bic", type: "Suffix", meaning: "living / life (bios)" }
-        ],
-        retrievalPrompt: "Turn to your partner: In 30 seconds, explain why anaerobic respiration is an emergency backup system for human muscle cells using the root 'an-'."
-      },
-      "etymological": {
-        targetWord: "etymological",
-        discipline: "Linguistics / Etymology",
-        etymology: "Greek etymon (true sense) + logos (study) + -ical",
-        phoneticIpa: "/ˌɛt.ə.məˈlɑː.dʒɪ.kəl/",
-        syllables: [
-          { text: "et", type: "Closed", primaryStress: false },
-          { text: "y", type: "Open", primaryStress: false },
-          { text: "mo", type: "Open", primaryStress: false },
-          { text: "log", type: "Closed", primaryStress: true },
-          { text: "i", type: "Open", primaryStress: false },
-          { text: "cal", type: "Closed", primaryStress: false }
-        ],
-        articulatoryCaution: "Accent the antepenultimate syllable: et-y-mo-LOG-i-cal. The open syllable 'mo' reduces to schwa /ə/ before the stressed root 'log'.",
-        morphemes: [
-          { chunk: "etym-", type: "Root", meaning: "true, real, or original" },
-          { chunk: "-o-", type: "Connector", meaning: "combining vowel" },
-          { chunk: "log", type: "Root", meaning: "study, word, reason" },
-          { chunk: "-ical", type: "Suffix", meaning: "pertaining to" }
-        ],
-        retrievalPrompt: "Discuss how tracking the etymological roots of technical scientific terms can assist students in decoding complex academic vocabulary across content areas."
-      },
-      "neuroimaging": {
-        targetWord: "neuroimaging",
-        discipline: "Cognitive Neuroscience",
-        etymology: "Greek neuron (nerve) + Latin imago (likeness) + -ing",
-        phoneticIpa: "/ˌnʊr.oʊˈɪm.ɪ.dʒɪŋ/",
-        syllables: [
-          { text: "neu", type: "Vowel Team", primaryStress: false },
-          { text: "ro", type: "Open", primaryStress: false },
-          { text: "im", type: "Closed", primaryStress: true },
-          { text: "a", type: "Open", primaryStress: false },
-          { text: "ging", type: "Closed", primaryStress: false }
-        ],
-        articulatoryCaution: "Accent the third syllable: neu-ro-IM-a-ging. Secondary stress sits on 'neu', while primary lexical stress lands firmly on the stem 'im'.",
-        morphemes: [
-          { chunk: "neur/o", type: "Combining Form", meaning: "nerve or nervous system" },
-          { chunk: "image", type: "Root", meaning: "visual representation or likeness" },
-          { chunk: "-ing", type: "Suffix", meaning: "denoting an action, process, or state" }
-        ],
-        retrievalPrompt: "Discuss with a peer how understanding the morphological components 'neur/o' and 'image' clarifies the specific methodology used in cognitive neuroscience to map brain structure and function."
-      }
-    };
-
-    // --- SYNTH AUDIO ENGINE ---
-    let audioCtx = null;
-    function getAudioContext() {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-      return audioCtx;
+  const DEFAULT_DECK = [
+    {
+      targetWord: "morphophonemic",
+      discipline: "Linguistics / LETRS",
+      etymology: "Greek morphē (form) + phōnē (sound) + -emic",
+      phoneticIpa: "/ˌmɔːr.foʊ.fəˈniː.mɪk/",
+      syllables: [
+        { text: "mor", type: "R-Controlled", primaryStress: false },
+        { text: "pho", type: "Open", primaryStress: false },
+        { text: "pho", type: "Open", primaryStress: false },
+        { text: "ne", type: "Open", primaryStress: true },
+        { text: "mic", type: "Closed", primaryStress: false }
+      ],
+      articulatoryCaution: "Accent the fourth syllable: mor-pho-pho-NE-mic. Blend the two distinct /f/ sounds without eliding the unstressed medial /fə/.",
+      morphemes: [
+        { chunk: "morph-", type: "Combining Form", meaning: "form or structure" },
+        { chunk: "-o-", type: "Connector", meaning: "combining vowel" },
+        { chunk: "phon", type: "Root", meaning: "sound or voice" },
+        { chunk: "-emic", type: "Suffix", meaning: "pertaining to linguistic units" }
+      ],
+      retrievalPrompt: "Discuss with a peer how understanding morphophonemic spelling patterns explains why English spelling preserves root structures despite vowel shifts (e.g., 'heal' and 'health')."
     }
+  ];
 
-    function playSynthBass(isAccent = false) {
+  let currentDeck = [...DEFAULT_DECK];
+  let currentIndex = 0;
+  let currentTap = -1;
+
+  const VERIFIED_LEXICON = {
+    "morphophonemic": DEFAULT_DECK[0]
+  };
+
+  // --- AUDIO SYNTH ENGINE ---
+  let audioCtx = null;
+  function getAudioContext() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+  }
+
+  function playSynthBass(isAccent = false) {
+    try {
       const ctx = getAudioContext();
       const now = ctx.currentTime;
       const osc = ctx.createOscillator();
@@ -442,316 +276,410 @@
 
       osc.start(now);
       osc.stop(now + 0.4);
+    } catch (e) {
+      console.warn("Audio Context init blocked until user gesture", e);
     }
+  }
 
-    // --- RENDER LOGIC ---
-    function renderCard() {
-      if (!currentDeck || currentDeck.length === 0) return;
-      const word = currentDeck[currentIndex];
-      if (!word) return;
+  // --- STRESS ALIGNMENT LOGIC ---
+  function alignLinguisticStress(card) {
+    if (!card || !card.syllables || !Array.isArray(card.syllables) || card.syllables.length === 0) return;
+    card.syllables.forEach(s => { s.primaryStress = false; });
 
-      currentTap = -1;
+    const wLower = (card.targetWord || "").toLowerCase().trim();
+    let targetIdx = -1;
 
-      // Safe fallbacks for missing properties
-      const syllables = Array.isArray(word.syllables) ? word.syllables : [];
-      const morphemes = Array.isArray(word.morphemes) ? word.morphemes : [];
-
-      document.getElementById('targetWord').textContent = word.targetWord || 'Unknown';
-      document.getElementById('phoneticIpa').textContent = word.phoneticIpa || '';
-      document.getElementById('etymologyLabel').textContent = word.etymology || '';
-      document.getElementById('disciplineBadge').textContent = word.discipline || 'General';
-      document.getElementById('articulatoryNotes').textContent = "Articulation: " + (word.articulatoryCaution || 'Standard articulation.');
-      document.getElementById('retrievalPrompt').textContent = word.retrievalPrompt || '';
-      document.getElementById('wordProgress').textContent = `Word ${currentIndex + 1} of ${currentDeck.length}`;
-      document.getElementById('tapCounter').textContent = `BEAT 0 / ${syllables.length}`;
-
-      const sylContainer = document.getElementById('syllableContainer');
-      sylContainer.innerHTML = '';
-      syllables.forEach((syl, i) => {
-        const text = typeof syl === 'string' ? syl : (syl.text || syl.chunk || syl.syllable || '');
-        const type = syl.type || 'Syllable';
-        const isStress = !!syl.primaryStress;
-
-        const btn = document.createElement('div');
-        btn.id = `syl-${i}`;
-        btn.className = `tap-node cursor-pointer px-5 py-4 rounded-xl border border-slate-700 bg-slate-800/90 text-center flex flex-col items-center min-w-[75px] md:min-w-[90px]`;
-        btn.onclick = () => jumpToTap(i);
-        btn.innerHTML = `
-          <span class="text-2xl md:text-3xl font-extrabold ${isStress ? 'text-cyan-300' : 'text-slate-100'}">${text}</span>
-          <span class="text-[10px] uppercase font-bold mono text-slate-400 mt-1">${type}</span>
-          ${isStress ? '<span class="text-[9px] text-amber-400 font-bold mono mt-0.5">● STRESS</span>' : ''}
-        `;
-        sylContainer.appendChild(btn);
-      });
-
-      const morphGrid = document.getElementById('morphemeGrid');
-      morphGrid.innerHTML = '';
-      morphemes.forEach(m => {
-        const chunk = typeof m === 'string' ? m : (m.chunk || m.text || m.morpheme || '');
-        const type = m.type || 'Morpheme';
-        const meaning = m.meaning || m.definition || '';
-
-        const card = document.createElement('div');
-        card.className = "bg-slate-800/40 border border-slate-800 p-3 rounded-lg flex flex-col justify-between";
-        card.innerHTML = `
-          <div>
-            <div class="text-[10px] font-bold uppercase mono text-cyan-400">${type}</div>
-            <div class="text-xl font-extrabold text-white my-0.5 mono">${chunk}</div>
-          </div>
-          <div class="text-xs text-slate-300 mt-2 font-medium">${meaning}</div>
-        `;
-        morphGrid.appendChild(card);
+    if (/(ical|graphy|logy|metry|nomy)$/.test(wLower) && card.syllables.length >= 3) {
+      targetIdx = card.syllables.length - 3;
+    } else if (/(ic|ics|istic|tion|sion|ity)$/.test(wLower) && card.syllables.length >= 2) {
+      targetIdx = card.syllables.length - 2;
+    } else if (/(ize|ized)$/.test(wLower)) {
+      targetIdx = 0;
+    } else if (/^(neuro|cardio|electro|micro)/.test(wLower)) {
+      let runningLen = 0;
+      const match = wLower.match(/^(neuro|cardio|electro|micro)/);
+      const pfxLen = match ? match[0].length : 0;
+      card.syllables.forEach((syl, i) => {
+        const txt = syl.text || syl.chunk || syl.syllable || '';
+        if (targetIdx === -1 && runningLen >= pfxLen) targetIdx = i;
+        runningLen += txt.length;
       });
     }
 
-    function advanceTap() {
-      const word = currentDeck[currentIndex];
-      currentTap = (currentTap + 1) % word.syllables.length;
-      updateTapVisuals();
+    if (targetIdx === -1 && card.phoneticIpa) {
+      const raw = card.phoneticIpa;
+      const markerPos = raw.search(/[ˈ']/);
+      if (markerPos !== -1) {
+        const post = raw.slice(markerPos + 1).replace(/[ˌ,.\/\[\]]/g, '').toLowerCase();
+        let maxLen = -1;
+        card.syllables.forEach((syl, i) => {
+          const txt = syl.text || syl.chunk || syl.syllable || '';
+          const sClean = txt.toLowerCase().replace(/[^a-z]/g, '');
+          if (sClean && (post.startsWith(sClean[0]) || post.includes(sClean))) {
+            if (sClean.length > maxLen) {
+              maxLen = sClean.length;
+              targetIdx = i;
+            }
+          }
+        });
+      }
     }
 
-    function jumpToTap(index) {
-      currentTap = index;
-      updateTapVisuals();
-    }
+    if (targetIdx === -1) targetIdx = 0;
+    card.syllables.forEach((s, i) => { s.primaryStress = (i === targetIdx); });
+  }
 
-    function updateTapVisuals() {
-      const word = currentDeck[currentIndex];
-      word.syllables.forEach((_, i) => {
-        const el = document.getElementById(`syl-${i}`);
+  // --- RENDER CARD ---
+  function renderCard() {
+    if (!currentDeck || currentDeck.length === 0) return;
+    const word = currentDeck[currentIndex];
+    if (!word) return;
+
+    currentTap = -1;
+
+    const syllables = Array.isArray(word.syllables) ? word.syllables : [];
+    const morphemes = Array.isArray(word.morphemes) ? word.morphemes : [];
+
+    document.getElementById('targetWord').textContent = word.targetWord || 'Unknown';
+    document.getElementById('phoneticIpa').textContent = word.phoneticIpa || '';
+    document.getElementById('etymologyLabel').textContent = word.etymology || '';
+    document.getElementById('disciplineBadge').textContent = word.discipline || 'General';
+    document.getElementById('articulatoryNotes').textContent = "Articulation: " + (word.articulatoryCaution || 'Standard articulation.');
+    document.getElementById('retrievalPrompt').textContent = word.retrievalPrompt || '';
+    document.getElementById('wordProgress').textContent = `Word ${currentIndex + 1} of ${currentDeck.length}`;
+    document.getElementById('tapCounter').textContent = `BEAT 0 / ${syllables.length}`;
+
+    const sylContainer = document.getElementById('syllableContainer');
+    sylContainer.innerHTML = '';
+    syllables.forEach((syl, i) => {
+      const text = typeof syl === 'string' ? syl : (syl.text || syl.chunk || syl.syllable || '');
+      const type = syl.type || 'Syllable';
+      const isStress = !!syl.primaryStress;
+
+      const btn = document.createElement('div');
+      btn.id = `syl-${i}`;
+      btn.className = `tap-node cursor-pointer px-5 py-4 rounded-xl border border-slate-700 bg-slate-800/90 text-center flex flex-col items-center min-w-[75px] md:min-w-[90px]`;
+      btn.onclick = () => jumpToTap(i);
+      btn.innerHTML = `
+        <span class="text-2xl md:text-3xl font-extrabold ${isStress ? 'text-cyan-300' : 'text-slate-100'}">${text}</span>
+        <span class="text-[10px] uppercase font-bold mono text-slate-400 mt-1">${type}</span>
+        ${isStress ? '<span class="text-[9px] text-amber-400 font-bold mono mt-0.5">● STRESS</span>' : ''}
+      `;
+      sylContainer.appendChild(btn);
+    });
+
+    const morphGrid = document.getElementById('morphemeGrid');
+    morphGrid.innerHTML = '';
+    morphemes.forEach(m => {
+      const chunk = typeof m === 'string' ? m : (m.chunk || m.text || m.morpheme || '');
+      const type = m.type || 'Morpheme';
+      const meaning = m.meaning || m.definition || '';
+
+      const card = document.createElement('div');
+      card.className = "bg-slate-800/40 border border-slate-800 p-3 rounded-lg flex flex-col justify-between";
+      card.innerHTML = `
+        <div>
+          <div class="text-[10px] font-bold uppercase mono text-cyan-400">${type}</div>
+          <div class="text-xl font-extrabold text-white my-0.5 mono">${chunk}</div>
+        </div>
+        <div class="text-xs text-slate-300 mt-2 font-medium">${meaning}</div>
+      `;
+      morphGrid.appendChild(card);
+    });
+  }
+
+  function advanceTap() {
+    const word = currentDeck[currentIndex];
+    if (!word || !word.syllables || word.syllables.length === 0) return;
+    currentTap = (currentTap + 1) % word.syllables.length;
+    updateTapVisuals();
+  }
+
+  function jumpToTap(index) {
+    currentTap = index;
+    updateTapVisuals();
+  }
+
+  function updateTapVisuals() {
+    const word = currentDeck[currentIndex];
+    if (!word || !word.syllables) return;
+
+    word.syllables.forEach((_, i) => {
+      const el = document.getElementById(`syl-${i}`);
+      if (el) {
         if (i === currentTap) el.classList.add('active');
         else el.classList.remove('active');
-      });
-      const isStress = word.syllables[currentTap]?.primaryStress;
-      playSynthBass(isStress);
-      document.getElementById('tapCounter').textContent = `BEAT ${currentTap + 1} / ${word.syllables.length}`;
-    }
-
-    function nextWord() {
-      if (currentIndex < currentDeck.length - 1) {
-        currentIndex++;
-        renderCard();
-      }
-    }
-
-    function prevWord() {
-      if (currentIndex > 0) {
-        currentIndex--;
-        renderCard();
-      }
-    }
-
-    window.addEventListener('keydown', (e) => {
-      const modalOpen = !document.getElementById('deckModal').classList.contains('hidden') || 
-                        !document.getElementById('aiDrawer').classList.contains('hidden');
-      if (!modalOpen) {
-        if (e.code === 'Space') {
-          e.preventDefault();
-          advanceTap();
-        } else if (e.code === 'ArrowRight') {
-          nextWord();
-        } else if (e.code === 'ArrowLeft') {
-          prevWord();
-        }
       }
     });
 
-    // --- MODAL CONTROLLERS ---
-    function toggleAiDrawer() {
-      document.getElementById('aiDrawer').classList.toggle('hidden');
-    }
+    const isStress = word.syllables[currentTap]?.primaryStress;
+    playSynthBass(isStress);
+    document.getElementById('tapCounter').textContent = `BEAT ${currentTap + 1} / ${word.syllables.length}`;
+  }
 
-    function toggleDeckModal() {
-      const modal = document.getElementById('deckModal');
-      modal.classList.toggle('hidden');
-      if (!modal.classList.contains('hidden')) {
-        document.getElementById('jsonInput').value = JSON.stringify(currentDeck, null, 2);
+  function nextWord() {
+    if (currentIndex < currentDeck.length - 1) {
+      currentIndex++;
+      renderCard();
+    }
+  }
+
+  function prevWord() {
+    if (currentIndex > 0) {
+      currentIndex--;
+      renderCard();
+    }
+  }
+
+  window.addEventListener('keydown', (e) => {
+    const modalOpen = !document.getElementById('deckModal').classList.contains('hidden') || 
+                      !document.getElementById('aiDrawer').classList.contains('hidden') ||
+                      !document.getElementById('diagnosticModal').classList.contains('hidden');
+    if (!modalOpen) {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        advanceTap();
+      } else if (e.code === 'ArrowRight') {
+        nextWord();
+      } else if (e.code === 'ArrowLeft') {
+        prevWord();
       }
     }
+  });
 
-    function applyCustomJson() {
-      try {
-        const parsed = JSON.parse(document.getElementById('jsonInput').value);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          currentDeck = parsed;
-          currentIndex = 0;
-          renderCard();
-          toggleDeckModal();
-        }
-      } catch (err) {
-        alert('Invalid JSON: ' + err.message);
+  // --- MODAL CONTROLS ---
+  function toggleAiDrawer() {
+    document.getElementById('aiDrawer').classList.toggle('hidden');
+  }
+
+  function toggleDeckModal() {
+    const modal = document.getElementById('deckModal');
+    modal.classList.toggle('hidden');
+    if (!modal.classList.contains('hidden')) {
+      document.getElementById('jsonInput').value = JSON.stringify(currentDeck, null, 2);
+    }
+  }
+
+  function toggleDiagnosticModal() {
+    document.getElementById('diagnosticModal').classList.toggle('hidden');
+  }
+
+  function openDiagnosticModal() {
+    const card = currentDeck[currentIndex];
+    document.getElementById('diagTargetWord').textContent = card.targetWord;
+    document.getElementById('diagTeacherNote').value = '';
+    
+    document.querySelectorAll('.diag-chip').forEach(c => {
+      c.classList.remove('border-amber-400', 'bg-amber-500/20', 'text-amber-300');
+      c.classList.add('border-slate-700', 'bg-slate-950', 'text-slate-300');
+    });
+    toggleDiagnosticModal();
+  }
+
+  function toggleChip(btn) {
+    btn.classList.toggle('border-amber-400');
+    btn.classList.toggle('bg-amber-500/20');
+    btn.classList.toggle('text-amber-300');
+    btn.classList.toggle('border-slate-700');
+    btn.classList.toggle('bg-slate-950');
+    btn.classList.toggle('text-slate-300');
+  }
+
+  function applyCustomJson() {
+    try {
+      const parsed = JSON.parse(document.getElementById('jsonInput').value);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        currentDeck = parsed;
+        currentIndex = 0;
+        renderCard();
+        toggleDeckModal();
       }
+    } catch (err) {
+      alert('Invalid JSON: ' + err.message);
+    }
+  }
+
+  // --- AI ENGINE WITH NORMALIZATION & FALLBACK PARSING ---
+  async function generateDeckWithAI() {
+    const rawWords = document.getElementById('aiWordInput').value.trim();
+    if (!rawWords) {
+      alert('Please enter at least one vocabulary word.');
+      return;
     }
 
-    function alignLinguisticStress(card) {
-      if (!card.syllables || !Array.isArray(card.syllables) || card.syllables.length === 0) return;
-      card.syllables.forEach(s => s.primaryStress = false);
+    const loading = document.getElementById('aiLoading');
+    const genBtn = document.getElementById('generateBtn');
+    loading.classList.remove('hidden');
+    genBtn.disabled = true;
 
-      const wLower = (card.targetWord || "").toLowerCase().trim();
-      let targetIdx = -1;
+    const words = rawWords.split(',').map(w => w.trim()).filter(Boolean);
+    const generatedCards = [];
+    const wordsToQuery = [];
 
-      if (/(ical|graphy|logy|metry|nomy)$/.test(wLower) && card.syllables.length >= 3) {
-        targetIdx = card.syllables.length - 3;
-      } else if (/(ic|ics|istic|tion|sion|ity)$/.test(wLower) && card.syllables.length >= 2) { 
-        targetIdx = card.syllables.length - 2; 
-      } else if (/(ize|ized)$/.test(wLower)) {
-        targetIdx = 0;
-      } else if (/^(neuro|cardio|electro|micro)/.test(wLower)) {
-        let runningLen = 0;
-        const match = wLower.match(/^(neuro|cardio|electro|micro)/);
-        const pfxLen = match ? match[0].length : 0;
-        card.syllables.forEach((syl, i) => {
-          const txt = syl.text || syl.chunk || syl.syllable || '';
-          if (targetIdx === -1 && runningLen >= pfxLen) targetIdx = i;
-          runningLen += txt.length;
-        });
+    words.forEach(w => {
+      const lower = w.toLowerCase();
+      if (VERIFIED_LEXICON[lower]) {
+        generatedCards.push(JSON.parse(JSON.stringify(VERIFIED_LEXICON[lower])));
+      } else {
+        wordsToQuery.push(w);
       }
+    });
 
-      if (targetIdx === -1 && card.phoneticIpa) {
-        const raw = card.phoneticIpa;
-        const markerPos = raw.search(/[ˈ']/);
-        if (markerPos !== -1) {
-          const post = raw.slice(markerPos + 1).replace(/[ˌ,.\/\[\]]/g, '').toLowerCase();
-          let maxLen = -1;
-          card.syllables.forEach((syl, i) => {
-            const txt = syl.text || syl.chunk || syl.syllable || '';
-            const sClean = txt.toLowerCase().replace(/[^a-z]/g, '');
-            if (sClean && (post.startsWith(sClean[0]) || post.includes(sClean))) {
-              if (sClean.length > maxLen) {
-                maxLen = sClean.length;
-                targetIdx = i;
-              }
-            }
-          });
-        }
-      }
-
-      if (targetIdx === -1) targetIdx = 0;
-      card.syllables.forEach((s, i) => s.primaryStress = (i === targetIdx));
+    if (wordsToQuery.length === 0) {
+      currentDeck = generatedCards;
+      currentIndex = 0;
+      renderCard();
+      toggleAiDrawer();
+      loading.classList.add('hidden');
+      genBtn.disabled = false;
+      return;
     }
 
-    function alignLinguisticStress(card) {
-      if (!card.syllables || !Array.isArray(card.syllables) || card.syllables.length === 0) return;
-      card.syllables.forEach(s => s.primaryStress = false);
-
-      const wLower = (card.targetWord || "").toLowerCase().trim();
-      let targetIdx = -1;
-
-      if (/(ical|graphy|logy|metry|nomy)$/.test(wLower) && card.syllables.length >= 3) {
-        targetIdx = card.syllables.length - 3;
-      } else if (/(ic|ics|istic|tion|sion|ity)$/.test(wLower) && card.syllables.length >= 2) { 
-        targetIdx = card.syllables.length - 2; 
-      } else if (/(ize|ized)$/.test(wLower)) {
-        targetIdx = 0;
-      } else if (/^(neuro|cardio|electro|micro)/.test(wLower)) {
-        let runningLen = 0;
-        const match = wLower.match(/^(neuro|cardio|electro|micro)/);
-        const pfxLen = match ? match[0].length : 0;
-        card.syllables.forEach((syl, i) => {
-          const txt = syl.text || syl.chunk || syl.syllable || '';
-          if (targetIdx === -1 && runningLen >= pfxLen) targetIdx = i;
-          runningLen += txt.length;
-        });
-      }
-
-      if (targetIdx === -1 && card.phoneticIpa) {
-        const raw = card.phoneticIpa;
-        const markerPos = raw.search(/[ˈ']/);
-        if (markerPos !== -1) {
-          const post = raw.slice(markerPos + 1).replace(/[ˌ,.\/\[\]]/g, '').toLowerCase();
-          let maxLen = -1;
-          card.syllables.forEach((syl, i) => {
-            const txt = syl.text || syl.chunk || syl.syllable || '';
-            const sClean = txt.toLowerCase().replace(/[^a-z]/g, '');
-            if (sClean && (post.startsWith(sClean[0]) || post.includes(sClean))) {
-              if (sClean.length > maxLen) {
-                maxLen = sClean.length;
-                targetIdx = i;
-              }
-            }
-          });
-        }
-      }
-
-      if (targetIdx === -1) targetIdx = 0;
-      card.syllables.forEach((s, i) => s.primaryStress = (i === targetIdx));
-    }
-
-    // --- DIAGNOSTIC MODAL CONTROLLERS ---
-    function toggleDiagnosticModal() {
-      document.getElementById('diagnosticModal').classList.toggle('hidden');
-    }
-
-    function openDiagnosticModal() {
-      const card = currentDeck[currentIndex];
-      document.getElementById('diagTargetWord').textContent = card.targetWord;
-      document.getElementById('diagTeacherNote').value = '';
-      
-      document.querySelectorAll('.diag-chip').forEach(c => {
-        c.classList.remove('border-amber-400', 'bg-amber-500/20', 'text-amber-300');
-        c.classList.add('border-slate-700', 'bg-slate-950', 'text-slate-300');
+    try {
+      const response = await fetch(WORKER_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-App-Key': APP_KEY
+        },
+        body: JSON.stringify({
+          action: 'ORTHO_MAP',
+          words: wordsToQuery
+        })
       });
-      toggleDiagnosticModal();
-    }
 
-    function toggleChip(btn) {
-      btn.classList.toggle('border-amber-400');
-      btn.classList.toggle('bg-amber-500/20');
-      btn.classList.toggle('text-amber-300');
-      btn.classList.toggle('border-slate-700');
-      btn.classList.toggle('bg-slate-950');
-      btn.classList.toggle('text-slate-300');
-    }
-
-    async function submitRecalibration() {
-      const card = currentDeck[currentIndex];
-      const selectedChips = Array.from(document.querySelectorAll('.diag-chip.border-amber-400'))
-        .map(c => c.getAttribute('data-issue'));
-      const teacherNote = document.getElementById('diagTeacherNote').value.trim();
-
-      if (selectedChips.length === 0 && !teacherNote) {
-        alert("Please select at least one issue or provide a note.");
-        return;
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `HTTP ${response.status}`);
       }
 
-      const diagLoading = document.getElementById('diagLoading');
-      const recalBtn = document.getElementById('recalibrateBtn');
-      diagLoading.classList.remove('hidden');
-      recalBtn.disabled = true;
+      const data = await response.json();
+      
+      let aiCards = [];
+      if (Array.isArray(data)) {
+        aiCards = data;
+      } else if (Array.isArray(data.results)) {
+        aiCards = data.results;
+      } else if (Array.isArray(data.cards)) {
+        aiCards = data.cards;
+      } else if (Array.isArray(data.words)) {
+        aiCards = data.words;
+      } else if (typeof data === 'object' && data !== null) {
+        const found = Object.values(data).find(v => Array.isArray(v));
+        if (found) aiCards = found;
+      }
 
-      try {
-        const response = await fetch(WORKER_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-App-Key': APP_KEY
-          },
-          body: JSON.stringify({
-            action: 'ORTHO_MAP',
-            words: [card.targetWord]
-          })
+      aiCards.forEach(card => {
+        if (!card.syllables || !Array.isArray(card.syllables)) {
+          const rawSyllables = card.syllablesList || card.chunks || [];
+          if (Array.isArray(rawSyllables) && rawSyllables.length > 0) {
+            card.syllables = rawSyllables;
+          } else {
+            card.syllables = (card.targetWord || "").split(/[-·•.]/).filter(Boolean).map(s => ({
+              text: s,
+              type: "Syllable",
+              primaryStress: false
+            }));
+          }
+        }
+
+        card.syllables = card.syllables.map(syl => {
+          if (typeof syl === 'string') {
+            return { text: syl, type: "Syllable", primaryStress: false };
+          }
+          return {
+            text: syl.text || syl.chunk || syl.syllable || '',
+            type: syl.type || 'Syllable',
+            primaryStress: !!syl.primaryStress
+          };
         });
 
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-        const repairedCard = data.results?.[0];
-
-        if (repairedCard) {
-          alignLinguisticStress(repairedCard);
-          currentDeck[currentIndex] = repairedCard;
-          renderCard();
-          toggleDiagnosticModal();
+        if (!card.morphemes || !Array.isArray(card.morphemes)) {
+          card.morphemes = [];
+        } else {
+          card.morphemes = card.morphemes.map(m => {
+            if (typeof m === 'string') {
+              return { chunk: m, type: "Morpheme", meaning: "" };
+            }
+            return {
+              chunk: m.chunk || m.text || m.morpheme || '',
+              type: m.type || 'Morpheme',
+              meaning: m.meaning || m.definition || ''
+            };
+          });
         }
-      } catch (err) {
-        alert("Recalibration Failed: " + err.message);
-      } finally {
-        diagLoading.classList.add('hidden');
-        recalBtn.disabled = false;
+
+        alignLinguisticStress(card);
+        generatedCards.push(card);
+      });
+
+      if (generatedCards.length === 0) {
+        throw new Error("No usable card structures could be extracted.");
       }
+
+      currentDeck = generatedCards;
+      currentIndex = 0;
+      renderCard();
+      toggleAiDrawer();
+    } catch (err) {
+      alert("Generation Error: " + err.message);
+    } finally {
+      loading.classList.add('hidden');
+      genBtn.disabled = false;
+    }
+  }
+
+  async function submitRecalibration() {
+    const card = currentDeck[currentIndex];
+    const selectedChips = Array.from(document.querySelectorAll('.diag-chip.border-amber-400'))
+      .map(c => c.getAttribute('data-issue'));
+    const teacherNote = document.getElementById('diagTeacherNote').value.trim();
+
+    if (selectedChips.length === 0 && !teacherNote) {
+      alert("Please select at least one issue or provide a note.");
+      return;
     }
 
-    // Initial render on boot
-    renderCard();
-  </script>
+    const diagLoading = document.getElementById('diagLoading');
+    const recalBtn = document.getElementById('recalibrateBtn');
+    diagLoading.classList.remove('hidden');
+    recalBtn.disabled = true;
+
+    try {
+      const response = await fetch(WORKER_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-App-Key': APP_KEY
+        },
+        body: JSON.stringify({
+          action: 'ORTHO_MAP',
+          words: [card.targetWord],
+          flags: selectedChips,
+          notes: teacherNote
+        })
+      });
+
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      const repairedCard = (data.results && data.results[0]) || (Array.isArray(data) && data[0]);
+
+      if (repairedCard) {
+        alignLinguisticStress(repairedCard);
+        currentDeck[currentIndex] = repairedCard;
+        renderCard();
+        toggleDiagnosticModal();
+      }
+    } catch (err) {
+      alert("Recalibration Failed: " + err.message);
+    } finally {
+      diagLoading.classList.add('hidden');
+      recalBtn.disabled = false;
+    }
+  }
+
+  // Boot the app
+  renderCard();
+</script>
 </body>
 </html>
