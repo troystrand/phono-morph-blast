@@ -446,44 +446,59 @@
 
     // --- RENDER LOGIC ---
     function renderCard() {
+      if (!currentDeck || currentDeck.length === 0) return;
       const word = currentDeck[currentIndex];
+      if (!word) return;
+
       currentTap = -1;
 
-      document.getElementById('targetWord').textContent = word.targetWord;
-      document.getElementById('phoneticIpa').textContent = word.phoneticIpa;
-      document.getElementById('etymologyLabel').textContent = word.etymology;
-      document.getElementById('disciplineBadge').textContent = word.discipline;
-      document.getElementById('articulatoryNotes').textContent = "Articulation: " + word.articulatoryCaution;
-      document.getElementById('retrievalPrompt').textContent = word.retrievalPrompt;
+      // Safe fallbacks for missing properties
+      const syllables = Array.isArray(word.syllables) ? word.syllables : [];
+      const morphemes = Array.isArray(word.morphemes) ? word.morphemes : [];
+
+      document.getElementById('targetWord').textContent = word.targetWord || 'Unknown';
+      document.getElementById('phoneticIpa').textContent = word.phoneticIpa || '';
+      document.getElementById('etymologyLabel').textContent = word.etymology || '';
+      document.getElementById('disciplineBadge').textContent = word.discipline || 'General';
+      document.getElementById('articulatoryNotes').textContent = "Articulation: " + (word.articulatoryCaution || 'Standard articulation.');
+      document.getElementById('retrievalPrompt').textContent = word.retrievalPrompt || '';
       document.getElementById('wordProgress').textContent = `Word ${currentIndex + 1} of ${currentDeck.length}`;
-      document.getElementById('tapCounter').textContent = `BEAT 0 / ${word.syllables.length}`;
+      document.getElementById('tapCounter').textContent = `BEAT 0 / ${syllables.length}`;
 
       const sylContainer = document.getElementById('syllableContainer');
       sylContainer.innerHTML = '';
-      word.syllables.forEach((syl, i) => {
+      syllables.forEach((syl, i) => {
+        const text = typeof syl === 'string' ? syl : (syl.text || syl.chunk || syl.syllable || '');
+        const type = syl.type || 'Syllable';
+        const isStress = !!syl.primaryStress;
+
         const btn = document.createElement('div');
         btn.id = `syl-${i}`;
         btn.className = `tap-node cursor-pointer px-5 py-4 rounded-xl border border-slate-700 bg-slate-800/90 text-center flex flex-col items-center min-w-[75px] md:min-w-[90px]`;
         btn.onclick = () => jumpToTap(i);
         btn.innerHTML = `
-          <span class="text-2xl md:text-3xl font-extrabold ${syl.primaryStress ? 'text-cyan-300' : 'text-slate-100'}">${syl.text}</span>
-          <span class="text-[10px] uppercase font-bold mono text-slate-400 mt-1">${syl.type}</span>
-          ${syl.primaryStress ? '<span class="text-[9px] text-amber-400 font-bold mono mt-0.5">● STRESS</span>' : ''}
+          <span class="text-2xl md:text-3xl font-extrabold ${isStress ? 'text-cyan-300' : 'text-slate-100'}">${text}</span>
+          <span class="text-[10px] uppercase font-bold mono text-slate-400 mt-1">${type}</span>
+          ${isStress ? '<span class="text-[9px] text-amber-400 font-bold mono mt-0.5">● STRESS</span>' : ''}
         `;
         sylContainer.appendChild(btn);
       });
 
       const morphGrid = document.getElementById('morphemeGrid');
       morphGrid.innerHTML = '';
-      word.morphemes.forEach(m => {
+      morphemes.forEach(m => {
+        const chunk = typeof m === 'string' ? m : (m.chunk || m.text || m.morpheme || '');
+        const type = m.type || 'Morpheme';
+        const meaning = m.meaning || m.definition || '';
+
         const card = document.createElement('div');
         card.className = "bg-slate-800/40 border border-slate-800 p-3 rounded-lg flex flex-col justify-between";
         card.innerHTML = `
           <div>
-            <div class="text-[10px] font-bold uppercase mono text-cyan-400">${m.type}</div>
-            <div class="text-xl font-extrabold text-white my-0.5 mono">${m.chunk}</div>
+            <div class="text-[10px] font-bold uppercase mono text-cyan-400">${type}</div>
+            <div class="text-xl font-extrabold text-white my-0.5 mono">${chunk}</div>
           </div>
-          <div class="text-xs text-slate-300 mt-2 font-medium">${m.meaning}</div>
+          <div class="text-xs text-slate-300 mt-2 font-medium">${meaning}</div>
         `;
         morphGrid.appendChild(card);
       });
@@ -569,7 +584,7 @@
     }
 
     function alignLinguisticStress(card) {
-      if (!card.syllables || card.syllables.length === 0) return;
+      if (!card.syllables || !Array.isArray(card.syllables) || card.syllables.length === 0) return;
       card.syllables.forEach(s => s.primaryStress = false);
 
       const wLower = (card.targetWord || "").toLowerCase().trim();
@@ -577,14 +592,18 @@
 
       if (/(ical|graphy|logy|metry|nomy)$/.test(wLower) && card.syllables.length >= 3) {
         targetIdx = card.syllables.length - 3;
-      } else if (/(ic|ics|istic|tion|sion|ity)$/.test(wLower) && card.syllables.length >= 2) { targetIdx = card.syllables.length - 2; } else if (/(ize\vert{}ized)$/.test(wLower)) {
+      } else if (/(ic|ics|istic|tion|sion|ity)$/.test(wLower) && card.syllables.length >= 2) { 
+        targetIdx = card.syllables.length - 2; 
+      } else if (/(ize|ized)$/.test(wLower)) {
         targetIdx = 0;
       } else if (/^(neuro|cardio|electro|micro)/.test(wLower)) {
         let runningLen = 0;
-        const pfx = wLower.match(/^(neuro|cardio|electro|micro)/)[0];
+        const match = wLower.match(/^(neuro|cardio|electro|micro)/);
+        const pfxLen = match ? match[0].length : 0;
         card.syllables.forEach((syl, i) => {
-          if (targetIdx === -1 && runningLen >= pfx.length) targetIdx = i;
-          runningLen += syl.text.length;
+          const txt = syl.text || syl.chunk || syl.syllable || '';
+          if (targetIdx === -1 && runningLen >= pfxLen) targetIdx = i;
+          runningLen += txt.length;
         });
       }
 
@@ -595,7 +614,8 @@
           const post = raw.slice(markerPos + 1).replace(/[ˌ,.\/\[\]]/g, '').toLowerCase();
           let maxLen = -1;
           card.syllables.forEach((syl, i) => {
-            const sClean = syl.text.toLowerCase().replace(/[^a-z]/g, '');
+            const txt = syl.text || syl.chunk || syl.syllable || '';
+            const sClean = txt.toLowerCase().replace(/[^a-z]/g, '');
             if (sClean && (post.startsWith(sClean[0]) || post.includes(sClean))) {
               if (sClean.length > maxLen) {
                 maxLen = sClean.length;
@@ -610,79 +630,51 @@
       card.syllables.forEach((s, i) => s.primaryStress = (i === targetIdx));
     }
 
-    // --- AI GENERATOR ENGINE ---
-    async function generateDeckWithAI() {
-      const rawWords = document.getElementById('aiWordInput').value.trim();
+    function alignLinguisticStress(card) {
+      if (!card.syllables || !Array.isArray(card.syllables) || card.syllables.length === 0) return;
+      card.syllables.forEach(s => s.primaryStress = false);
 
-      if (!rawWords) {
-        alert('Please enter at least one vocabulary word.');
-        return;
-      }
+      const wLower = (card.targetWord || "").toLowerCase().trim();
+      let targetIdx = -1;
 
-      const loading = document.getElementById('aiLoading');
-      const genBtn = document.getElementById('generateBtn');
-      loading.classList.remove('hidden');
-      genBtn.disabled = true;
-
-      const words = rawWords.split(',').map(w => w.trim()).filter(Boolean);
-      const generatedCards = [];
-      const wordsToQuery = [];
-
-      words.forEach(w => {
-        const lower = w.toLowerCase();
-        if (VERIFIED_LEXICON[lower]) {
-          generatedCards.push(JSON.parse(JSON.stringify(VERIFIED_LEXICON[lower])));
-        } else {
-          wordsToQuery.push(w);
-        }
-      });
-
-      if (wordsToQuery.length === 0) {
-        currentDeck = generatedCards;
-        currentIndex = 0;
-        renderCard();
-        toggleAiDrawer();
-        loading.classList.add('hidden');
-        genBtn.disabled = false;
-        return;
-      }
-
-      try {
-        const response = await fetch(WORKER_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-App-Key': APP_KEY
-          },
-          body: JSON.stringify({
-            action: 'ORTHO_MAP',
-            words: wordsToQuery
-          })
+      if (/(ical|graphy|logy|metry|nomy)$/.test(wLower) && card.syllables.length >= 3) {
+        targetIdx = card.syllables.length - 3;
+      } else if (/(ic|ics|istic|tion|sion|ity)$/.test(wLower) && card.syllables.length >= 2) { 
+        targetIdx = card.syllables.length - 2; 
+      } else if (/(ize|ized)$/.test(wLower)) {
+        targetIdx = 0;
+      } else if (/^(neuro|cardio|electro|micro)/.test(wLower)) {
+        let runningLen = 0;
+        const match = wLower.match(/^(neuro|cardio|electro|micro)/);
+        const pfxLen = match ? match[0].length : 0;
+        card.syllables.forEach((syl, i) => {
+          const txt = syl.text || syl.chunk || syl.syllable || '';
+          if (targetIdx === -1 && runningLen >= pfxLen) targetIdx = i;
+          runningLen += txt.length;
         });
-
-        if (!response.ok) {
-          const errData = await response.json().catch(() => ({}));
-          throw new Error(errData.error || `HTTP ${response.status}`);
-        }
-
-        const data = await response.json();
-        const aiCards = data.results || [];
-
-        aiCards.forEach(card => {
-          alignLinguisticStress(card);
-          generatedCards.push(card);
-        });
-
-        currentDeck = generatedCards;
-        currentIndex = 0;
-        renderCard();
-        toggleAiDrawer();
-      } catch (err) {
-        alert("Generation Error: " + err.message);
-      } finally {
-        loading.classList.add('hidden');
-        genBtn.disabled = false;
       }
+
+      if (targetIdx === -1 && card.phoneticIpa) {
+        const raw = card.phoneticIpa;
+        const markerPos = raw.search(/[ˈ']/);
+        if (markerPos !== -1) {
+          const post = raw.slice(markerPos + 1).replace(/[ˌ,.\/\[\]]/g, '').toLowerCase();
+          let maxLen = -1;
+          card.syllables.forEach((syl, i) => {
+            const txt = syl.text || syl.chunk || syl.syllable || '';
+            const sClean = txt.toLowerCase().replace(/[^a-z]/g, '');
+            if (sClean && (post.startsWith(sClean[0]) || post.includes(sClean))) {
+              if (sClean.length > maxLen) {
+                maxLen = sClean.length;
+                targetIdx = i;
+              }
+            }
+          });
+        }
+      }
+
+      if (targetIdx === -1) targetIdx = 0;
+      card.syllables.forEach((s, i) => s.primaryStress = (i === targetIdx));
     }
 
     // --- DIAGNOSTIC MODAL CONTROLLERS ---
